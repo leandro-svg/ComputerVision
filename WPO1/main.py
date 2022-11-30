@@ -94,9 +94,31 @@ class Calibration():
             image_coord = np.append(image_coord, [elem])
         image_coord = np.reshape(image_coord, (np.shape(image_coord_temp)[0],3))
         
+        
+        ################################################
         inv_world_coord = np.linalg.pinv(world_coord.T)
         
         M = np.dot(image_coord.T, inv_world_coord)
+        ################################################
+        P = np.array([])
+        for i in range(np.shape(image_coord)[0]):
+            print(image_coord[i,:])
+            print(world_coord[i,0:3])
+            print(np.zeros((1,4))[0])
+            first = np.concatenate((world_coord[i,:], np.zeros((1,4))[0], -1*image_coord[i,0]*world_coord[i,:]))
+            second = np.concatenate((np.zeros((1,4))[0], world_coord[i,:],  -1*image_coord[i,1]*world_coord[i,:]))
+            
+            P = np.append(P, first, axis=0)
+            P = np.append(P, second, axis=0)
+            
+        P = np.reshape(P, (24, 12))
+        u, s, vh = np.linalg.svd(P)
+        
+        Mbis = vh[:, -1]
+        Mbis = np.reshape(M, (4,3)).T
+        M = Mbis
+        ################################################
+        
         return M, image_coord.T, world_coord.T
 
     def getCameraParameters(self, M, image_coord, world_coord):
