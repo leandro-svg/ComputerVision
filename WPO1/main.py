@@ -121,8 +121,8 @@ class Calibration():
         print("Translation Matrix")
         print(T)
         
-        
-        print(world_coord[0,:])
+        print("multiplicatipion between M and WC")
+        print(np.dot(M, world_coord))
 def get_Parser():
     parser = argparse.ArgumentParser(
             description="Implementation of the required Calibration")
