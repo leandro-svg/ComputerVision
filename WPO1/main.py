@@ -8,7 +8,6 @@ from matplotlib import pyplot as plt
 import os
 
 def click_event(event, x, y, flags, params):
-    print("main side")
     if event == cv2.EVENT_LBUTTONDOWN:
  
         print(x, ' ', y)
@@ -24,7 +23,6 @@ def click_event(event, x, y, flags, params):
         cv2.imshow('image', image)
 
 def click_event_left(event, x, y, flags, params):
-    print("left side")
     if event == cv2.EVENT_LBUTTONDOWN:
  
         print(x, ' ', y)
@@ -196,7 +194,7 @@ if __name__ == '__main__':
     world_coord_file = args.txtfile
     Calibration = Calibration()
     
-    image = Calibration.PreProcess(img_path)
+    image = Calibration.PreProcess(img_path_left)
     
     image_points = Calibration.getPointsFromImage(image, 'Inputs/image_coordinate.txt', 0)
 
@@ -205,4 +203,5 @@ if __name__ == '__main__':
     camParameters = Calibration.getCameraParameters(M, image_coord, world_coord)
     
     image_left = Calibration.PreProcess(img_path_left)
+    
     Calibration.leftImage(image_left,img_path_left,  camParameters)
