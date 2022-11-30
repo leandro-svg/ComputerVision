@@ -45,7 +45,7 @@ class Calibration():
             cv2.waitKey(1000000)
             cv2.destroyAllWindows()
         else:
-            print("Image Coordinate file already exist, we will work with him")
+            print("Image Coordinate file already exists, we will work with it")
         with open('Inputs/image_coordinate.txt', 'r') as file:
             lines = [line.rstrip() for line in file]
 
@@ -79,20 +79,13 @@ class Calibration():
             elem = np.append(elem, [1])
             image_coord = np.append(image_coord, [elem])
         image_coord = np.reshape(image_coord, (np.shape(image_coord_temp)[0],3))
-        print("World Coorinate Matrix")
-        print(world_coord.T)
-        print("Image Coordinate Matrix")
-        print(image_coord.T)
-
+        
         inv_world_coord = np.linalg.pinv(world_coord.T)
         
-        print("Projection Matrix")
         M = np.dot(image_coord.T, inv_world_coord)
-        print(M)
         return M, image_coord.T, world_coord.T
 
     def getCameraParameters(self, M, image_coord, world_coord):
-        print(M)
         m_1  = M[0, 0:3]
         m_2 = M[1, 0:3]
         m_3 = M[2,0:3]
@@ -111,18 +104,23 @@ class Calibration():
         t_z = M[2,3]
 
         R = np.reshape(np.concatenate((r_1, r_2, r_3)), (3,3))
-        T = np.array([t_x, t_y, t_z]).T
-        
+        T = np.array([t_x, t_y, t_z])
         intrinsic  = np.array([[f_x, 1, c_x], [0, f_y, c_y], [0, 0, 1]])
-        print("Intrinsic matrix")
-        print(intrinsic)
-        print("Rotation Matrix")
-        print(R)
-        print("Translation Matrix")
-        print(T)
         
-        print("multiplicatipion between M and WC")
-        print(np.dot(M, world_coord))
+        extrinsic = np.concatenate((R, np.array([T]).T), axis=1)
+        added = np.array([[0,0,0,1]])
+        extrinsic = np.concatenate((extrinsic, added))
+        camParameters = {}
+        
+        camParameters["ImageCoordinate"] = image_coord
+        camParameters["WorldCoordinate"] = world_coord
+        camParameters["ProjectionMatrix"] = M
+        camParameters["Intrinsic"] = intrinsic
+        camParameters["Extrinsic"] = extrinsic
+        camParameters["RotationMatrix"] = R
+        camParameters["TranslationMatrix"] = T
+        print(camParameters)
+        return camParameters
 def get_Parser():
     parser = argparse.ArgumentParser(
             description="Implementation of the required Calibration")
@@ -155,5 +153,5 @@ if __name__ == '__main__':
 
     M, image_coord, world_coord = Calibration.projectMatrix(image_points, world_coord_file)
     
-    Calibration.getCameraParameters(M, image_coord, world_coord)
+    camParameters = Calibration.getCameraParameters(M, image_coord, world_coord)
     
