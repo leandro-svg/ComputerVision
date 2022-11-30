@@ -120,6 +120,9 @@ class Calibration():
         print(R)
         print("Translation Matrix")
         print(T)
+        
+        
+        print(world_coord[0,:])
 def get_Parser():
     parser = argparse.ArgumentParser(
             description="Implementation of the required Calibration")
