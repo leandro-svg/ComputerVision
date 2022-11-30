@@ -96,28 +96,41 @@ class Calibration():
         
         
         ################################################
-        inv_world_coord = np.linalg.pinv(world_coord.T)
+        # inv_world_coord = np.linalg.pinv(world_coord.T)
         
-        M = np.dot(image_coord.T, inv_world_coord)
+        # M = np.dot(image_coord.T, inv_world_coord)
         ################################################
         P = np.array([])
         for i in range(np.shape(image_coord)[0]):
-            print(image_coord[i,:])
-            print(world_coord[i,0:3])
-            print(np.zeros((1,4))[0])
             first = np.concatenate((world_coord[i,:], np.zeros((1,4))[0], -1*image_coord[i,0]*world_coord[i,:]))
-            second = np.concatenate((np.zeros((1,4))[0], world_coord[i,:],  -1*image_coord[i,1]*world_coord[i,:]))
             
+            second = np.concatenate((np.zeros((1,4))[0], world_coord[i,:],  -1*image_coord[i,1]*world_coord[i,:]))
             P = np.append(P, first, axis=0)
             P = np.append(P, second, axis=0)
             
         P = np.reshape(P, (24, 12))
-        u, s, vh = np.linalg.svd(P)
+        # # print(P)
+        # u, s, vh = np.linalg.svd(P)
+        # print("S", s)
+        # Mbis = vh[:, -1]
         
-        Mbis = vh[:, -1]
-        Mbis = np.reshape(M, (4,3)).T
-        M = Mbis
+        # Mbis = np.reshape(Mbis, (4,3)).T
+        # norm_3 = np.linalg.norm(Mbis[2,:])
+        # M = Mbis/norm_3
         ################################################
+        A = P
+        A_ = np.matmul(A.T, A)
+        # compute its eigenvectors and eigenvalues
+        eigenvalues, eigenvectors = np.linalg.eig(A_)
+        
+        # find the eigenvector with the minimum eigenvalue
+        # (numpy already returns sorted eigenvectors wrt their eigenvalues)
+        m = eigenvectors[:, 11]
+
+        # reshape m back to a matrix
+        M = m.reshape(3, 4)
+        norm_3 = np.linalg.norm(M[2,:])
+        M = M/norm_3
         
         return M, image_coord.T, world_coord.T
 
@@ -126,8 +139,8 @@ class Calibration():
         m_2 = M[1, 0:3]
         m_3 = M[2,0:3]
         r_3 = m_3
-        c_x = np.dot(m_1, r_3)
-        c_y = np.dot(m_2, r_3)
+        c_x = np.matmul(m_1, r_3)
+        c_y = np.matmul(m_2, r_3)
         
         f_x = np.linalg.norm(m_1*r_3)
         f_y = np.linalg.norm(m_2*r_3)
@@ -136,30 +149,32 @@ class Calibration():
         r_2 = (1/f_y)*(m_2 - c_y*m_3)
         
         t_x = (1/f_x)*(M[0,3] - c_x*M[2, 3])
-        t_y = (1/f_y)*(M[1,3] - c_x*M[2, 3])
+        t_y = (1/f_y)*(M[1,3] - c_y*M[2, 3])
         t_z = M[2,3]
 
         R = np.reshape(np.concatenate((r_1, r_2, r_3)), (3,3))
         T = np.array([t_x, t_y, t_z])
-        intrinsic  = np.array([[f_x, 1, c_x], [0, f_y, c_y], [0, 0, 1]])
+        intrinsic  = np.array([[f_x, 0, c_x], [0, f_y, c_y], [0, 0, 1]])
         
         extrinsic = np.concatenate((R, np.array([T]).T), axis=1)
         added = np.array([[0,0,0,1]])
         extrinsic_add = np.concatenate((extrinsic, added))
         
-        print("MMMMMM3", np.dot(intrinsic, extrinsic))
         camParameters = {}
         
         camParameters["ImageCoordinate"] = image_coord
         camParameters["WorldCoordinate"] = world_coord
         camParameters["ProjectionMatrix"] = M
         camParameters["Intrinsic"] = intrinsic
-        camParameters["Extrinsic"] = extrinsic
+        camParameters["Extrinsic"] = extrinsic_add
         camParameters["RotationMatrix"] = R
         camParameters["TranslationMatrix"] = T
         print(camParameters)
         return camParameters
-    
+    def verification(self, camParameters, image_coord, world_coord):
+        print("No verificaiton yet")
+        
+        
     def leftImage(self, image_left,path,  camParameters):
         image_points_left_temp = self.getPointsFromImage(image_left, "Inputs/image_coordinate_left.txt", 1)
         
@@ -168,21 +183,66 @@ class Calibration():
             elem = np.append(elem, [1])
             image_coord_left = np.append(image_coord_left, [elem])
         image_coord_left = np.reshape(image_coord_left, (np.shape(image_points_left_temp)[0],3))
+        project  = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0]])
+        K  = np.matmul(camParameters["Intrinsic"], project)
+        print("K", K)
+        world2image = np.matmul(K,camParameters["Extrinsic"])
+        print("World2image matrix", world2image)
         
-        world2image = np.dot(camParameters["Intrinsic"],camParameters["Extrinsic"])
+        
+        image_coord_left = np.matmul(camParameters["ProjectionMatrix"], camParameters["WorldCoordinate"])
+        print("Those are image coordinate")
+        print(image_coord_left)
+        
+        image_coord_left = np.matmul(world2image, camParameters["WorldCoordinate"])
+        print("Those are image coordinate")
+        print(image_coord_left)
+        
         M = np.zeros((3,3))
         for i in range(0,3):
             M[i,0] = world2image[i,0]
             M[i,1] = world2image[i,1]
-            M[i,2] = world2image[i,3]
-        print(M)
-        image2world = np.linalg.inv(M)
-        world_coord_left = np.dot(image2world,  image_coord_left.T)
+            M[i,2] = world2image[i,2]
+
+        image2world = np.linalg.pinv(world2image)
+        print("image2world matrix", image2world)
+        world_coord_left = np.matmul(image2world, camParameters["ImageCoordinate"])
         print("Those are world coordinate")
         print(world_coord_left)
-    
-    
-    
+        
+        ##############################
+        tempMat = np.matmul(np.linalg.inv(camParameters["RotationMatrix"]),(np.matmul(np.linalg.inv(camParameters["Intrinsic"]),camParameters["ImageCoordinate"][:,0])))
+        tempMat2 = np.matmul(np.linalg.inv(camParameters["RotationMatrix"]),camParameters["TranslationMatrix"])
+        s =  tempMat2
+        s /= tempMat
+        print(s)
+        wcPoint = np.matmul(np.linalg.inv(camParameters["RotationMatrix"]),(np.matmul(s,np.matmul(np.linalg.inv(camParameters["Intrinsic"]),camParameters["ImageCoordinate"][:,0])) - camParameters["TranslationMatrix"]))
+        ###############################
+        
+        world_coord_test = np.array([[0,49,0,1]])
+        print(world_coord_test.T)
+        print(camParameters["WorldCoordinate"])
+        image_coord_test = np.matmul(camParameters["ProjectionMatrix"], world_coord_test.T)
+        
+        image_coord_test_new = image_coord_test[0:2,:]
+        print("new",image_coord_test)
+        print(image_coord_test_new)
+        image = cv2.imread("Inputs/left.jpg")
+        cv2.circle(image, tuple([int(image_coord_test_new[0][0]), int(image_coord_test_new[1][0])]), 0, color=(0, 0, 255), thickness=5)
+        # cv2.circle(image, tuple([int(image_coord_test_new[0][1]), int(image_coord_test_new[1][1])]), 0, color=(0, 0, 255), thickness=5)
+        
+        
+        world_coord_test = np.array([[5,0,0,1]])
+        image_coord_test = np.matmul(camParameters["ProjectionMatrix"], world_coord_test.T)
+        
+        image_coord_test_new = image_coord_test[0:2,:]
+        print(image_coord_test)
+        cv2.circle(image, tuple([int(image_coord_test_new[0][0]), int(image_coord_test_new[1][0])]), 0, color=(0, 0, 255), thickness=5)
+        # cv2.circle(image, tuple([int(image_coord_test_new[0][1]), int(image_coord_test_new[1][1])]), 0, color=(0, 0, 255), thickness=5)
+        
+        cv2.imwrite("lol.jpg", image)
+
+
 def get_Parser():
     parser = argparse.ArgumentParser(
             description="Implementation of the required Calibration")
@@ -223,6 +283,8 @@ if __name__ == '__main__':
     M, image_coord, world_coord = Calibration.projectMatrix(image_points, world_coord_file)
     
     camParameters = Calibration.getCameraParameters(M, image_coord, world_coord)
+    
+    Calibration.verification(camParameters,image_coord, world_coord)
     
     image_left = Calibration.PreProcess(img_path_left)
     
