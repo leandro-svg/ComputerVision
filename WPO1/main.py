@@ -109,13 +109,13 @@ class Calibration():
             
         P = np.reshape(P, (24, 12))
         # # print(P)
-        # u, s, vh = np.linalg.svd(P)
-        # print("S", s)
-        # Mbis = vh[:, -1]
+        u, s, vh = np.linalg.svd(P)
+        print("S", vh)
+        Mbis = vh[:, -1]
         
-        # Mbis = np.reshape(Mbis, (4,3)).T
-        # norm_3 = np.linalg.norm(Mbis[2,:])
-        # M = Mbis/norm_3
+        Mbis = np.reshape(Mbis, (4,3)).T
+        norm_3 = np.linalg.norm(Mbis[2,:])
+        Mbis = Mbis/norm_3
         ################################################
         A = P
         A_ = np.matmul(A.T, A)
@@ -131,7 +131,7 @@ class Calibration():
         norm_3 = np.linalg.norm(M[2,:])
         M = M/norm_3
         
-        return M, image_coord.T, world_coord.T
+        return Mbis, image_coord.T, world_coord.T
 
     def getCameraParameters(self, M, image_coord, world_coord):
         m_1  = M[0, 0:3]
@@ -173,13 +173,6 @@ class Calibration():
     
         
     def verification(self, image_left,path,  camParameters, intege):
-        # image_points_left_temp = self.getPointsFromImage(image_left, "Inputs/image_coordinate.txt", 1)
-        
-        # image_coord_left = np.array([])
-        # for elem in image_points_left_temp:
-        #     elem = np.append(elem, [1])
-        #     image_coord_left = np.append(image_coord_left, [elem])
-        # image_coord_left = np.reshape(image_coord_left, (np.shape(image_points_left_temp)[0],3))
         project  = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0]])
         K  = np.matmul(camParameters["Intrinsic"], project)
         world2image = np.matmul(K,camParameters["Extrinsic"])
@@ -225,9 +218,9 @@ class Calibration():
             cv2.circle(image, tuple([s*int(image_coord_test_new[0]), s*int(image_coord_test_new[1])]), 0, color=(0, 0, 255), thickness=5)
         
         if (intege == 0):
-            cv2.imwrite("./output/left.jpg", image)
+            cv2.imwrite("./output/reconstructed_left_monocular.jpg", image)
         elif (intege == 1):
-            cv2.imwrite("./output/right.jpg", image)
+            cv2.imwrite("./output/reconstructed_right_monocular.jpg", image)
 
 def get_Parser():
     parser = argparse.ArgumentParser(
@@ -270,7 +263,7 @@ if __name__ == '__main__':
     world_coord_file = args.txtfile
     Calibration = Calibration()
     image_left = Calibration.PreProcess(img_path_left)
-    image_points = Calibration.getPointsFromImage(image_left, 'Inputs/image_coordinate.txt', 0
+    image_points = Calibration.getPointsFromImage(image_left, 'Inputs/image_coordinate.txt', 0)
     M, image_coord, world_coord = Calibration.projectMatrix(image_points, world_coord_file)
     camParameters = Calibration.getCameraParameters(M, image_coord, world_coord)
     Calibration.verification(image_left,img_path_left,  camParameters, 0)
