@@ -152,7 +152,6 @@ class Calibration():
         
         Mbis = np.reshape(Mbis, (3,4))
         norm_3 = np.linalg.norm(Mbis[2,:])
-        print("KKKKKKKKKKKK3", norm_3)
         Mbis = Mbis/norm_3
         ################################################
         # THIRD METHOD, WORK
@@ -165,7 +164,7 @@ class Calibration():
         norm_3 = np.linalg.norm(M[2,:])
         M = M/norm_3
         
-        return Mbis, image_coord.T, world_coord.T
+        return M, image_coord.T, world_coord.T
 
     def getCameraParameters(self, M, image_coord, world_coord):
         m_1  = M[0, 0:3]
