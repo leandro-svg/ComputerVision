@@ -267,32 +267,20 @@ if __name__ == '__main__':
     
     # LEFT IMAGE
     img_path_left = args.left
-
     world_coord_file = args.txtfile
     Calibration = Calibration()
-    
     image_left = Calibration.PreProcess(img_path_left)
-    
-    image_points = Calibration.getPointsFromImage(image_left, 'Inputs/image_coordinate.txt', 0)
-
+    image_points = Calibration.getPointsFromImage(image_left, 'Inputs/image_coordinate.txt', 0
     M, image_coord, world_coord = Calibration.projectMatrix(image_points, world_coord_file)
-    
     camParameters = Calibration.getCameraParameters(M, image_coord, world_coord)
-    
     Calibration.verification(image_left,img_path_left,  camParameters, 0)
     
     #RIGHT IMAGE
     
     img_path_right = args.right
-
     world_coord_file = args.txtfile
-    
     image_right = Calibration.PreProcess(img_path_right)
-    
     image_points = Calibration.getPointsFromImage(image_right, 'Inputs/image_coordinate_right.txt', 1)
-
     M, image_coord, world_coord = Calibration.projectMatrix(image_points, world_coord_file)
-    
     camParameters = Calibration.getCameraParameters(M, image_coord, world_coord)
-    
     Calibration.verification(image_right,img_path_right,  camParameters, 1)
