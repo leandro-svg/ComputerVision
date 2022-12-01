@@ -13,29 +13,29 @@ def click_event(event, x, y, flags, params):
         print(x, ' ', y)
  
         font = cv2.FONT_HERSHEY_SIMPLEX
-        cv2.putText(image, str(x) + ',' +
+        cv2.putText(image_left, str(x) + ',' +
                     str(y), (x,y), font,
                     1, (255, 0, 0), 2)
 
         with open('Inputs/image_coordinate.txt', 'a') as f:
             f.write(str(x) + ',' + str(y))
             f.write('\n')
-        cv2.imshow('image', image)
+        cv2.imshow('image_left', image_left)
 
-def click_event_left(event, x, y, flags, params):
+def click_event_right(event, x, y, flags, params):
     if event == cv2.EVENT_LBUTTONDOWN:
  
         print(x, ' ', y)
  
         font = cv2.FONT_HERSHEY_SIMPLEX
-        cv2.putText(image_left, str(x) + ',' +
+        cv2.putText(image_right, str(x) + ',' +
                     str(y), (x,y), font,
                     1, (255, 0, 0), 2)
 
-        with open('Inputs/image_coordinate_left.txt', 'a') as f:
+        with open('Inputs/image_coordinate_right.txt', 'a') as f:
             f.write(str(x) + ',' + str(y))
             f.write('\n')
-        cv2.imshow('image_left', image_left)
+        cv2.imshow('image_right', image_right)
  
 
 class Calibration():
@@ -47,15 +47,14 @@ class Calibration():
         return image
 
     def getPointsFromImage(self, image, path, choice):
-
         if not(os.path.isfile(path)):
-            cv2.imshow('image', image)
+            
             if (choice == 0):
-                cv2.imshow('image', image)
-                cv2.setMouseCallback('image', click_event)
-            elif (choice == 1 ):
                 cv2.imshow('image_left', image)
-                cv2.setMouseCallback('image_left', click_event_left)
+                cv2.setMouseCallback('image_left', click_event)
+            elif (choice == 1 ):
+                cv2.imshow('image_right', image)
+                cv2.setMouseCallback('image_right', click_event_right)
             cv2.waitKey(1000000)
             cv2.destroyAllWindows()
         else:
@@ -171,32 +170,28 @@ class Calibration():
         camParameters["TranslationMatrix"] = T
         print(camParameters)
         return camParameters
-    def verification(self, camParameters, image_coord, world_coord):
-        print("No verificaiton yet")
+    
         
+    def verification(self, image_left,path,  camParameters, intege):
+        # image_points_left_temp = self.getPointsFromImage(image_left, "Inputs/image_coordinate.txt", 1)
         
-    def leftImage(self, image_left,path,  camParameters):
-        image_points_left_temp = self.getPointsFromImage(image_left, "Inputs/image_coordinate_left.txt", 1)
-        
-        image_coord_left = np.array([])
-        for elem in image_points_left_temp:
-            elem = np.append(elem, [1])
-            image_coord_left = np.append(image_coord_left, [elem])
-        image_coord_left = np.reshape(image_coord_left, (np.shape(image_points_left_temp)[0],3))
+        # image_coord_left = np.array([])
+        # for elem in image_points_left_temp:
+        #     elem = np.append(elem, [1])
+        #     image_coord_left = np.append(image_coord_left, [elem])
+        # image_coord_left = np.reshape(image_coord_left, (np.shape(image_points_left_temp)[0],3))
         project  = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0]])
         K  = np.matmul(camParameters["Intrinsic"], project)
-        print("K", K)
         world2image = np.matmul(K,camParameters["Extrinsic"])
-        print("World2image matrix", world2image)
         
         
-        image_coord_left = np.matmul(camParameters["ProjectionMatrix"], camParameters["WorldCoordinate"])
+        image_coord_left_pred = np.matmul(camParameters["ProjectionMatrix"], camParameters["WorldCoordinate"])
         print("Those are image coordinate")
-        print(image_coord_left)
+        print(image_coord_left_pred)
         
-        image_coord_left = np.matmul(world2image, camParameters["WorldCoordinate"])
+        image_coord_left_pred = np.matmul(world2image, camParameters["WorldCoordinate"])
         print("Those are image coordinate")
-        print(image_coord_left)
+        print(image_coord_left_pred)
         
         M = np.zeros((3,3))
         for i in range(0,3):
@@ -206,7 +201,7 @@ class Calibration():
 
         image2world = np.linalg.pinv(world2image)
         print("image2world matrix", image2world)
-        world_coord_left = np.matmul(image2world, camParameters["ImageCoordinate"])
+        world_coord_left = np.matmul(camParameters["WorldCoordinate"].T, image2world)
         print("Those are world coordinate")
         print(world_coord_left)
         
@@ -218,30 +213,21 @@ class Calibration():
         print(s)
         wcPoint = np.matmul(np.linalg.inv(camParameters["RotationMatrix"]),(np.matmul(s,np.matmul(np.linalg.inv(camParameters["Intrinsic"]),camParameters["ImageCoordinate"][:,0])) - camParameters["TranslationMatrix"]))
         ###############################
+        if (intege == 0):
+            s = 1
+            image = cv2.imread("Inputs/left.jpg")
+        elif (intege == 1):
+            s = -1
+            image = cv2.imread("Inputs/right.jpg")
+        for elem in camParameters["WorldCoordinate"].T:
+            image_coord_test = np.matmul(camParameters["ProjectionMatrix"], elem.T)
+            image_coord_test_new = image_coord_test[0:2]
+            cv2.circle(image, tuple([s*int(image_coord_test_new[0]), s*int(image_coord_test_new[1])]), 0, color=(0, 0, 255), thickness=5)
         
-        world_coord_test = np.array([[0,49,0,1]])
-        print(world_coord_test.T)
-        print(camParameters["WorldCoordinate"])
-        image_coord_test = np.matmul(camParameters["ProjectionMatrix"], world_coord_test.T)
-        
-        image_coord_test_new = image_coord_test[0:2,:]
-        print("new",image_coord_test)
-        print(image_coord_test_new)
-        image = cv2.imread("Inputs/left.jpg")
-        cv2.circle(image, tuple([int(image_coord_test_new[0][0]), int(image_coord_test_new[1][0])]), 0, color=(0, 0, 255), thickness=5)
-        # cv2.circle(image, tuple([int(image_coord_test_new[0][1]), int(image_coord_test_new[1][1])]), 0, color=(0, 0, 255), thickness=5)
-        
-        
-        world_coord_test = np.array([[5,0,0,1]])
-        image_coord_test = np.matmul(camParameters["ProjectionMatrix"], world_coord_test.T)
-        
-        image_coord_test_new = image_coord_test[0:2,:]
-        print(image_coord_test)
-        cv2.circle(image, tuple([int(image_coord_test_new[0][0]), int(image_coord_test_new[1][0])]), 0, color=(0, 0, 255), thickness=5)
-        # cv2.circle(image, tuple([int(image_coord_test_new[0][1]), int(image_coord_test_new[1][1])]), 0, color=(0, 0, 255), thickness=5)
-        
-        cv2.imwrite("lol.jpg", image)
-
+        if (intege == 0):
+            cv2.imwrite("./output/left.jpg", image)
+        elif (intege == 1):
+            cv2.imwrite("./output/right.jpg", image)
 
 def get_Parser():
     parser = argparse.ArgumentParser(
@@ -258,6 +244,13 @@ def get_Parser():
             type=str,
             help="Directory to left input images",
             )
+    
+    parser.add_argument(
+            "--right",
+            default="Inputs/right.jpg",
+            type=str,
+            help="Directory to right input images",
+            )
 
     parser.add_argument(
             "--txtfile",
@@ -271,21 +264,35 @@ def get_Parser():
 if __name__ == '__main__':
     args = get_Parser().parse_args()
     img_path = args.input
+    
+    # LEFT IMAGE
     img_path_left = args.left
 
     world_coord_file = args.txtfile
     Calibration = Calibration()
     
-    image = Calibration.PreProcess(img_path_left)
+    image_left = Calibration.PreProcess(img_path_left)
     
-    image_points = Calibration.getPointsFromImage(image, 'Inputs/image_coordinate.txt', 0)
+    image_points = Calibration.getPointsFromImage(image_left, 'Inputs/image_coordinate.txt', 0)
 
     M, image_coord, world_coord = Calibration.projectMatrix(image_points, world_coord_file)
     
     camParameters = Calibration.getCameraParameters(M, image_coord, world_coord)
     
-    Calibration.verification(camParameters,image_coord, world_coord)
+    Calibration.verification(image_left,img_path_left,  camParameters, 0)
     
-    image_left = Calibration.PreProcess(img_path_left)
+    #RIGHT IMAGE
     
-    Calibration.leftImage(image_left,img_path_left,  camParameters)
+    img_path_right = args.right
+
+    world_coord_file = args.txtfile
+    
+    image_right = Calibration.PreProcess(img_path_right)
+    
+    image_points = Calibration.getPointsFromImage(image_right, 'Inputs/image_coordinate_right.txt', 1)
+
+    M, image_coord, world_coord = Calibration.projectMatrix(image_points, world_coord_file)
+    
+    camParameters = Calibration.getCameraParameters(M, image_coord, world_coord)
+    
+    Calibration.verification(image_right,img_path_right,  camParameters, 1)
