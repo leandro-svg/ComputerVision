@@ -11,7 +11,7 @@ from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-plt.style.use('seaborn-poster')
+# plt.style.use('seaborn-poster')
 
 def random_with_N_digits(n):
     range_start = 10**(n-1)
@@ -19,61 +19,18 @@ def random_with_N_digits(n):
     return randint(range_start, range_end)
 
 def click_event(event, x, y, flags, params):
+    print(params)
+    image3D, path = params
     if event == cv2.EVENT_LBUTTONDOWN:
- 
- 
         font = cv2.FONT_HERSHEY_SIMPLEX
-        cv2.putText(image_left, str(x) + ',' +
+        cv2.putText(image3D, str(x) + ',' +
                     str(y), (x,y), font,
                     1, (255, 0, 0), 2)
 
-        with open('Inputs/image_coordinate.txt', 'a') as f:
+        with open(path, 'a') as f:
             f.write(str(x) + ',' + str(y))
             f.write('\n')
-        cv2.imshow('image_left', image_left)
-
-def click_event_right(event, x, y, flags, params):
-    if event == cv2.EVENT_LBUTTONDOWN:
- 
- 
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        cv2.putText(image_right, str(x) + ',' +
-                    str(y), (x,y), font,
-                    1, (255, 0, 0), 2)
-
-        with open('Inputs/image_coordinate_right.txt', 'a') as f:
-            f.write(str(x) + ',' + str(y))
-            f.write('\n')
-        cv2.imshow('image_right', image_right)
-
-def click_event_3D_left(event, x, y, flags, params):
-    if event == cv2.EVENT_LBUTTONDOWN:
- 
- 
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        cv2.putText(image_3D_left, str(x) + ',' +
-                    str(y), (x,y), font,
-                    1, (255, 0, 0), 2)
-
-        with open('Inputs/3D_image_coordinate_left.txt', 'a') as f:
-            f.write(str(x) + ',' + str(y))
-            f.write('\n')
-        cv2.imshow('image_3D_left', image_3D_left)
-        
-def click_event_3D_right(event, x, y, flags, params):
-    if event == cv2.EVENT_LBUTTONDOWN:
- 
- 
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        cv2.putText(image_3D_right, str(x) + ',' +
-                    str(y), (x,y), font,
-                    1, (255, 0, 0), 2)
-
-        with open('Inputs/3D_image_coordinate_right.txt', 'a') as f:
-            f.write(str(x) + ',' + str(y))
-            f.write('\n')
-        cv2.imshow('image_3D_right', image_3D_right)
- 
+        cv2.imshow('image', image3D)
 
 class Calibration():
     def __init__(self, ):
@@ -83,22 +40,11 @@ class Calibration():
         image = cv2.imread(img_path)
         return image
 
-    def getPointsFromImage(self, image, path, choice):
+    def getPointsFromImage(self, image3D, path, choice):
         if not(os.path.isfile(path)):
-            
-            if (choice == 0):
-                cv2.imshow('image_left', image)
-                cv2.setMouseCallback('image_left', click_event)
-            elif (choice == 1 ):
-                cv2.imshow('image_right', image)
-                cv2.setMouseCallback('image_right', click_event_right)
-            elif (choice == 2):
-                cv2.imshow('image_3D_left', image)
-                cv2.setMouseCallback('image_3D_left', click_event_3D_left)
-            elif (choice == 3):
-                cv2.imshow('image_3D_right', image)
-                cv2.setMouseCallback('image_3D_right', click_event_3D_right)
-            cv2.waitKey(1000000)
+            cv2.imshow('image', image3D)
+            cv2.setMouseCallback('image', click_event, (image3D, path))
+            cv2.waitKey(0)
             cv2.destroyAllWindows()
         else:
             print("Image Coordinate file already exists, we will work with it")
@@ -135,17 +81,8 @@ class Calibration():
             elem = np.append(elem, [1])
             image_coord = np.append(image_coord, [elem])
         image_coord = np.reshape(image_coord, (np.shape(image_coord_temp)[0],3))
-        
-        
-        ################################################
-        # FIRST METHOD, DOESNT WORK
-        inv_world_coord = np.linalg.pinv(world_coord.T)
-        
-        M = np.dot(image_coord.T, inv_world_coord)
-        ################################################
-        # SECOND METHOD, WORK
+ 
         P = np.array([])
-        print("imageeeeeeeeeeee",world_coord[0,:])
         for i in range(np.shape(image_coord)[0]):
             first = np.concatenate((world_coord[i,:], np.zeros((1,4))[0], -1*image_coord[i,0]*world_coord[i,:]))
             second = np.concatenate((np.zeros((1,4))[0], world_coord[i,:],  -1*image_coord[i,1]*world_coord[i,:]))
@@ -156,24 +93,9 @@ class Calibration():
         u, s, vh = np.linalg.svd(P)
         v = vh.T
         Mbis = v[:, -1].T
-        
         Mbis = np.reshape(Mbis, (3,4))
         norm_3 = np.linalg.norm(Mbis[2,:])
         Mbis = -1*Mbis/norm_3
-        ################################################
-        # THIRD METHOD, WORK
-        A = P
-        A_ = np.matmul(A.T, A)
-        eigenvalues, eigenvectors = np.linalg.eig(A_)
-        m = eigenvectors[:, 11]
-        # reshape m back to a matrix
-        M = m.reshape(3, 4)
-        norm_3 = np.linalg.norm(M[2,:])
-        M = M/norm_3
-        print(M)
-        
-        
-        
         return Mbis, image_coord.T, world_coord.T
 
     def getCameraParameters(self, M, image_coord, world_coord):
@@ -212,7 +134,6 @@ class Calibration():
         camParameters["RotationMatrix"] = R
         camParameters["TranslationMatrix"] = T
         print(camParameters)
-        
         return camParameters
     
         
@@ -221,34 +142,6 @@ class Calibration():
         K  = np.matmul(camParameters["Intrinsic"], project)
         world2image = np.matmul(K,camParameters["Extrinsic"])
         
-        
-        image_coord_left_pred = np.matmul(camParameters["ProjectionMatrix"], camParameters["WorldCoordinate"])
-        print("Those are image coordinate")
-        print(image_coord_left_pred)
-        
-        image_coord_left_pred = np.matmul(world2image, camParameters["WorldCoordinate"])
-        print("Those are image coordinate")
-        print(image_coord_left_pred)
-        
-        M = np.zeros((3,3))
-        for i in range(0,3):
-            M[i,0] = world2image[i,0]
-            M[i,1] = world2image[i,1]
-            M[i,2] = world2image[i,2]
-
-        image2world = np.linalg.pinv(world2image)
-        print("image2world matrix", image2world)
-        world_coord_left = np.matmul(camParameters["WorldCoordinate"].T, image2world)
-        
-        
-        ##############################
-        tempMat = np.matmul(np.linalg.inv(camParameters["RotationMatrix"]),(np.matmul(np.linalg.inv(camParameters["Intrinsic"]),camParameters["ImageCoordinate"][:,0])))
-        tempMat2 = np.matmul(np.linalg.inv(camParameters["RotationMatrix"]),camParameters["TranslationMatrix"])
-        s =  tempMat2
-        s /= tempMat
-        print(s)
-        wcPoint = np.matmul(np.linalg.inv(camParameters["RotationMatrix"]),(np.matmul(s,np.matmul(np.linalg.inv(camParameters["Intrinsic"]),camParameters["ImageCoordinate"][:,0])) - camParameters["TranslationMatrix"]))
-        ###############################
         if (intege == 0):
             s = 1
             image = cv2.imread("Inputs/left.jpg")
@@ -256,52 +149,15 @@ class Calibration():
             s = 1
             image = cv2.imread("Inputs/right.jpg")
         for elem in camParameters["WorldCoordinate"].T:
-            image_coord_test = np.matmul(camParameters["ProjectionMatrix"], elem.T)
+            image_coord_test = np.matmul(world2image, elem.T)
             homogenous = image_coord_test[2]
             image_coord_test_new = image_coord_test[0:2]/homogenous
             cv2.circle(image, tuple([s*int(image_coord_test_new[0]), s*int(image_coord_test_new[1])]), 0, color=(0, 0, 255), thickness=5)
-        
         if (intege == 0):
             cv2.imwrite("./output/reconstructed_left_monocular.jpg", image)
         elif (intege == 1):
             cv2.imwrite("./output/reconstructed_right_monocular.jpg", image)
-            
-    def stereoVision(self, camRight, camLeft):
-        M_left = camLeft["ProjectionMatrix"]
-        M_right = camRight["ProjectionMatrix"]
-        im_coord_right = camRight["ImageCoordinate"]
-        im_coord_left = camLeft["ImageCoordinate"]
-        
-        m_1_left = M_left[0,:]
-        m_2_left = M_left[1,:]
-        m_3_left = M_left[2,:]
-        m_1_right = M_right[0,:]
-        m_2_right = M_right[1,:]
-        m_3_right = M_right[2,:]
-        
-        x_right = im_coord_right[0,:]
-        y_right = im_coord_right[1,:]
-        x_left = im_coord_left[0,:]
-        y_left = im_coord_left[1,:]
-        
-        world_coord = camLeft["WorldCoordinate"]
-        pred_world_mat = np.zeros(np.shape(world_coord))
-        for i in range(np.shape(world_coord)[1]):
-            A = np.array([(x_left[i]*m_3_left.T)-m_1_left.T,
-                        (y_left[i]*m_3_left.T)-m_2_left.T,
-                        (x_right[i]*m_3_right.T)-m_1_right.T,
-                        (y_right[i]*m_3_right.T)-m_2_right.T])
-            
-            u, s, vh = np.linalg.svd(A)
-            v = vh.T
-            pred_world = v[:, -1]
-            norm_3 = np.linalg.norm(pred_world[-1])
-            pred_world = abs(pred_world/norm_3)
-            pred_world_mat[:,i] = pred_world
-            
-        mse = (np.square(world_coord - pred_world_mat)).mean()
-        print("Mean Squared Error between Real World Coordinates: and Predicted World Coordinates : ", mse) 
-        
+     
     def threeDReconstruation(self,image_3D_left,image_3D_right, path_3D_left, path_3D_right, camParameters_right, camParameters_left ):
         image_points_3D_left = (Calibration.getPointsFromImage(image_3D_left, path_3D_left, 2)).T
         image_points_3D_right = (Calibration.getPointsFromImage(image_3D_right, path_3D_right, 3)).T
@@ -313,7 +169,6 @@ class Calibration():
         project_right  = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0]])
         K_right  = np.matmul(camParameters_right["Intrinsic"], project_right)
         world2image_right = np.matmul(K_right,camParameters_right["Extrinsic"])
-        
         
         M_left = world2image_left
         M_right = world2image_right
@@ -332,7 +187,6 @@ class Calibration():
         
         world_coord = camParameters_left["WorldCoordinate"]
         pred_world_mat = np.zeros((np.shape(image_points_3D_left)[1], np.shape(world_coord)[0]))
-        points_3d = []
         for i in range(np.shape(image_points_3D_left)[1]):
             A = np.array([(x_right[i]*m_3_right)-m_1_right,
                         (y_right[i]*m_3_right)-m_2_right,
@@ -347,6 +201,9 @@ class Calibration():
             pred_world_mat[i,:] = pred_world
 
         predicted_world_point = pred_world_mat[:,0:3]
+        pannel = predicted_world_point[0:12, :]
+        mse = (np.square(world_coord[0:3,:] - pannel.T)).mean()
+        print("Mean Squared Error between Real World Coordinates: and Predicted World Coordinates : ", mse) 
         return predicted_world_point
         
     def plot_cube(self, structure):
@@ -466,6 +323,5 @@ if __name__ == '__main__':
     # STEREO CALIBRATION
     image_3D_left = Calibration.PreProcess(img_path_left)
     image_3D_right = Calibration.PreProcess(img_path_right)
-    Calibration.stereoVision(camParameters_right, camParameters_left)
     predicted_world_point = Calibration.threeDReconstruation(image_3D_left, image_3D_right, 'Inputs/3D_image_coordinate_left.txt', 'Inputs/3D_image_coordinate_right.txt', camParameters_right, camParameters_left)
     Calibration.reconstruction(predicted_world_point)
