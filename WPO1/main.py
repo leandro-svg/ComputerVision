@@ -5,11 +5,18 @@ import math
 import time 
 import tqdm
 import os
+from random import randint
 
 from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
 plt.style.use('seaborn-poster')
 
+def random_with_N_digits(n):
+    range_start = 10**(n-1)
+    range_end = (10**n)-1
+    return randint(range_start, range_end)
 
 def click_event(event, x, y, flags, params):
     if event == cv2.EVENT_LBUTTONDOWN:
@@ -340,12 +347,65 @@ class Calibration():
             pred_world_mat[i,:] = pred_world
 
         predicted_world_point = pred_world_mat[:,0:3]
+        return predicted_world_point
         
+    def plot_cube(self, structure):
+        Z = np.zeros([8, 3])
+        Z[0:7, :] = np.array(structure[0:7])
+        Z[7, :] = np.array([Z[6, 0], Z[4, 1], Z[5, 2]])
+        verts = [[Z[0], Z[1], Z[2], Z[3]],
+                [Z[4], Z[5], Z[6], Z[7]],
+                [Z[0], Z[1], Z[7], Z[4]],
+                [Z[2], Z[3], Z[5], Z[6]],
+                [Z[1], Z[2], Z[6], Z[7]],
+                [Z[4], Z[7], Z[1], Z[0]]]
+        return verts
+    
+    def plot_structure(self, pannel):
+        a = pannel
+        Z = np.zeros([6, 3])
+        Z[0, :] = np.array([0, 0, 0])
+        Z[1, :] = np.array([0, 0, pannel[11, 2]])
+        Z[2, :] = np.array(pannel[10])
+        Z[3, :] = np.array([0, pannel[6][1], 0])
+        Z[4, :] = np.array(pannel[5])
+        Z[5, :] = np.array([pannel[1][0], 0, 0])
+        verts = [[Z[0], Z[1], Z[2], Z[3]],
+                [Z[0], Z[1], Z[4], Z[5]]]
+        return verts
+    
+    def plot_triangle(self, structure):
+        Z = np.zeros([4, 3])
+        Z[0:4, :] = np.array(structure[0:4])
+        verts = [[Z[0], Z[1], Z[2]],
+                [Z[0], Z[1], Z[3]],
+                [Z[3], Z[0], Z[2]],
+                [Z[0], Z[2], Z[3]]]
+        return verts
+    
+    def reconstruction(self, predicted_world_point):
         fig = plt.figure(figsize = (7,7))
         ax = plt.axes(projection='3d')
+        pannel = predicted_world_point[0:12, :]
+        big_cube = predicted_world_point[12:19, :]
+        pyramid = predicted_world_point[19:23, :]
+        little_cube = predicted_world_point[23:32, :]
+        
+        polycube = self.plot_cube(big_cube)
+        polycube_little = self.plot_cube(little_cube)
+        polystructure = self.plot_structure(pannel)
+        polytriangle = self.plot_triangle(pyramid)
+        structure = [polycube, polycube_little, polystructure, polytriangle ]
+        
+        for elem in structure:
+            face_colors = '#' + str(random_with_N_digits(6))
+            poly = Poly3DCollection(elem,facecolors=face_colors, linewidths=1, edgecolors='k', alpha=0.8)
+            ax.add_collection3d(poly)
+            
         ax.scatter(predicted_world_point[:,0], predicted_world_point[:,1], predicted_world_point[:,2], c = 'r', s = 50)
-
+        plt.savefig("output/3D_reconstruction.jpg")
         plt.show()
+        
         
 def get_Parser():
     parser = argparse.ArgumentParser(
@@ -393,7 +453,6 @@ if __name__ == '__main__':
     camParameters_left = Calibration.getCameraParameters(M_left, image_coord_left, world_coord_left)
     Calibration.verification(image_left,img_path_left,  camParameters_left, 0)
     
-    #RIGHT IMAGE
     
     img_path_right = args.right
     world_coord_file_right = args.txtfile
@@ -408,4 +467,5 @@ if __name__ == '__main__':
     image_3D_left = Calibration.PreProcess(img_path_left)
     image_3D_right = Calibration.PreProcess(img_path_right)
     Calibration.stereoVision(camParameters_right, camParameters_left)
-    Calibration.threeDReconstruation(image_3D_left, image_3D_right, 'Inputs/3D_image_coordinate_left.txt', 'Inputs/3D_image_coordinate_right.txt', camParameters_right, camParameters_left)
+    predicted_world_point = Calibration.threeDReconstruation(image_3D_left, image_3D_right, 'Inputs/3D_image_coordinate_left.txt', 'Inputs/3D_image_coordinate_right.txt', camParameters_right, camParameters_left)
+    Calibration.reconstruction(predicted_world_point)
