@@ -7,7 +7,7 @@ import time
 import tqdm
 import os
 from random import randint
-
+from skimage.transform import warp, ProjectiveTransform
 from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
@@ -293,7 +293,11 @@ class Calibration():
 class Epipolar(Calibration):
     def __init__(self, ):
         super().__init__()
-      
+        #Sources:
+        #https://towardsdatascience.com/a-comprehensive-tutorial-on-stereo-geometry-and-stereo-rectification-with-python-7f368b09924a
+        #https://docs.opencv.org/4.x/da/de9/tutorial_py_epipolar_geometry.html
+        #https://docs.opencv.org/3.4/d9/d0c/group__calib3d.html#ga49ea1a98c80a5e7d50ad4361dcf2877a
+        
     def epiParameters(self, image_3D_left,image_3D_right, camParameters_right, camParameters_left, image_points_3D_right, image_points_3D_left):
         project_left  = np.array([[1,0,0],[0,1,0],[0,0,1]])
         K_left  = np.matmul(camParameters_left["Intrinsic"], project_left)
@@ -346,11 +350,23 @@ class Epipolar(Calibration):
         
         return e_right, e_left, ptsRight, ptsLeft, FundMat, EssMat
     
-    def compute_matching_homographies(self, e2, F, im2, points1, points2):
+    def compute_matching_homographies(self, e2, F, im2, points1_, points2_):
         '''
         Compute the matching homography matrices
         '''
-        h, w = im2.shape
+        points1 = np.array([])
+        for elem in points1_:
+            elem = np.append(elem, [1])
+            points1 = np.append(points1, [elem])
+        points1 = np.reshape(points1, (np.shape(points1_)[0],3))
+        
+        points2 = np.array([])
+        for elem in points2_:
+            elem = np.append(elem, [1])
+            points2 = np.append(points2, [elem])
+        points2 = np.reshape(points2, (np.shape(points2_)[0],3))
+        
+        h, w, rgb = im2.shape
         # create the homography matrix H2 that moves the epipole to infinity
         
         # create the translation matrix to shift to the image center
@@ -360,6 +376,8 @@ class Epipolar(Calibration):
         e2x = e2_p[0]
         e2y = e2_p[1]
         # create the rotation matrix to rotate the epipole back to X axis
+        e2x = np.linalg.norm(e2x)
+        e2y = np.linalg.norm(e2y)
         if e2x >= 0:
             a = 1
         else:
@@ -376,22 +394,34 @@ class Epipolar(Calibration):
 
         # create the corresponding homography matrix for the other image
         e_x = np.array([[0, -e2[2], e2[1]], [e2[2], 0, -e2[0]], [-e2[1], e2[0], 0]])
-        M = e_x @ F + e2.reshape(3,1) @ np.array([[1, 1, 1]])
+        M = e_x @ F + e2[0,:].reshape(3,1) @ np.array([[1, 1, 1]])
         points1_t = H2 @ M @ points1.T
         points2_t = H2 @ points2.T
         points1_t /= points1_t[2, :]
         points2_t /= points2_t[2, :]
         b = points2_t[0, :]
+        print(points1_t)
         a = np.linalg.lstsq(points1_t.T, b, rcond=None)[0]
         H_A = np.array([a, [0, 1, 0], [0, 0, 1]])
         H1 = H_A @ H2 @ M
-        return H1, H2
+        return H1, H2, points1, points2
 
-    def rectification(self, im2, e_right, e_left, ptsRight, ptsLeft, FundMat, EssMat):
-        print('rectification')
-        H1, H2 = self.compute_matching_homographies(self, e_left, FundMat, im2, ptsRight, ptsLeft)
-        
-        
+    def rectification(self, im1, im2, e_right, e_left, ptsRight, ptsLeft, FundMat, EssMat):
+        H1, H2, points1, points2 = self.compute_matching_homographies(e_left, FundMat, im2, ptsRight, ptsLeft)
+        # Transform points based on the homography matrix
+        new_points1 = H1 @ points1.T
+        new_points2 = H2 @ points2.T
+        new_points1 /= new_points1[2,:]
+        new_points2 /= new_points2[2,:]
+        new_points1 = new_points1.T
+        new_points2 = new_points2.T
+
+        # warp images based on the homography matrix
+        im1_warped = warp(im2, ProjectiveTransform(matrix=np.linalg.inv(H1)))
+        im2_warped = warp(im1, ProjectiveTransform(matrix=np.linalg.inv(H2)))
+
+        cv.imwrite("test.jpg", im1_warped)
+        cv.imwrite("test2.jpg", im2_warped)
 
 def get_Parser():
     parser = argparse.ArgumentParser(
@@ -459,4 +489,4 @@ if __name__ == '__main__':
     #EPIPOLAR LINES
     epi = Epipolar()
     e_right, e_left, ptsRight, ptsLeft, FundMat, EssMat = epi.epiParameters(image_3D_left, image_3D_right, camParameters_right, camParameters_left, image_points_3D_right, image_points_3D_left)
-    epi.rectification(image_3D_left, e_right, e_left, ptsRight, ptsLeft, FundMat, EssMat)
+    epi.rectification(image_3D_right, image_3D_left, e_left, FundMat, ptsRight, ptsLeft, FundMat, EssMat)
