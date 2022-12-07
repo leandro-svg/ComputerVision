@@ -1,6 +1,7 @@
 import numpy as np
 import argparse
 import cv2
+import cv2 as cv
 import math
 import time 
 import tqdm
@@ -203,7 +204,7 @@ class Calibration():
         pannel = predicted_world_point[0:12, :]
         mse = (np.square(world_coord[0:3,:] - pannel.T)).mean()
         print("Mean Squared Error between Real World Coordinates: and Predicted World Coordinates : ", mse) 
-        return predicted_world_point
+        return predicted_world_point, image_points_3D_right, image_points_3D_left
         
     def plot_cube(self, structure):
         Z = np.zeros([8, 3])
@@ -260,7 +261,30 @@ class Calibration():
             
         ax.scatter(predicted_world_point[:,0], predicted_world_point[:,1], predicted_world_point[:,2], c = 'r', s = 50)
         plt.savefig("output/3D_reconstruction.jpg")
-        plt.show()
+        # plt.show()
+        
+    def computeCameraEye_PT(self, image_points, world_points):
+        focal_length = 25
+        pixel_size = 0.00345
+        image_resolution = [2464, 2056]
+        image2world = cv2.getPerspectiveTransform(image_points, world_points)
+
+        intrinsic = [[focal_length / pixel_size, 0, image_resolution[0] / 2],
+                    [0, focal_length / pixel_size, image_resolution[1] / 2],
+                    [0, 0, 1]]
+
+        world_points_3D = []
+        image_points_2D = []
+        for elem in world_points : 
+            world_points_3D.append([elem[0], elem[1], 0])
+
+        for elem in image_points : 
+            image_points_2D.append([elem[0], elem[1], 0])
+        
+        retVal, rvec, tvec = cv2.solvePnP(np.array(world_points_3D), np.array(image_points), np.array(intrinsic), None)
+        if retVal :
+            rotation_matrix = cv2.Rodrigues(np.array(rvec))[0]
+            cameraEye = - np.transpose(rotation_matrix) @ tvec
     
     def check(self):
         print("We good in here")
@@ -269,10 +293,65 @@ class Calibration():
 class Epipolar(Calibration):
     def __init__(self, ):
         super().__init__()
-    def epipolar_lines(self):
-        print("We good in here")
+      
+    def epiParameters(self, image_3D_left,image_3D_right, camParameters_right, camParameters_left, image_points_3D_right, image_points_3D_left):
+        project_left  = np.array([[1,0,0],[0,1,0],[0,0,1]])
+        K_left  = np.matmul(camParameters_left["Intrinsic"], project_left)
+        
+        project_right  = np.array([[1,0,0],[0,1,0],[0,0,1]])
+        K_right  = np.matmul(camParameters_right["Intrinsic"], project_right) 
+     
+        
+        ptsRight = image_points_3D_right[:,:].T
+        ptsLeft = image_points_3D_left[:,:].T
+        
+        FundMat, mask = cv2.findFundamentalMat(ptsLeft,ptsRight,cv2.FM_LMEDS)
+        EssMat = np.matmul(K_right.T, np.matmul(FundMat, K_left))
+
+
+        new_ptsLeft = np.append(ptsLeft[0,:], [1])
+        new_ptsRight = np.append(ptsRight[0,:], [1])
+        p_left = np.matmul(np.linalg.pinv(K_left), new_ptsLeft)
+        p_right = np.matmul(np.linalg.pinv(K_right), new_ptsRight)
         
         
+        # Should be zero
+        epiLine = np.matmul(p_right.T,np.matmul(EssMat, p_left))
+        zero = np.matmul(new_ptsRight.T,np.matmul(FundMat, new_ptsLeft))
+        
+        #Find epipoles = F*e = 0 
+        u, s, vh = np.linalg.svd(FundMat)
+        v = vh.T
+        e = v[:, -1]
+        norm_3 = (e[-1])
+        e_left = (e/norm_3)
+        
+        u, s, vh = np.linalg.svd(FundMat.T)
+        v = vh.T
+        e_2 = v[:, -1]
+        norm_3 = e_2[-1]
+        e_right = (e_2/norm_3)
+        
+        img1 = cv.imread("Inputs/left.jpg")
+        color = tuple(np.random.randint(0,255,3).tolist())
+        for elem in ptsLeft:
+            img1 = cv.line(img1, (elem[0],elem[1]), (int(e_left[0]),int(e_left[1])), color,1)
+            img1 = cv.circle(img1,(elem[0],elem[1]),5,color,-1)
+        img2 = cv.imread("Inputs/right.jpg")
+        for elem in ptsRight:
+            img2 = cv.line(img2, (elem[0],elem[1]), (int(e_right[0]),int(e_right[1])), color,1)
+            img2 = cv.circle(img2,(elem[0],elem[1]),5,color,-1)
+        cv.imwrite("output/epipolar/epi_lines_left.jpg", img1)
+        cv.imwrite("output/epipolar/epi_lines_left.jpg.jpg", img2)
+        
+        return e_right, e_left, ptsRight, ptsLeft, FundMat, EssMat
+        
+    def rectification(self, e_right, e_left, ptsRight, ptsLeft, FundMat, EssMat):
+        print('rectification')
+        
+        
+        
+
 def get_Parser():
     parser = argparse.ArgumentParser(
             description="Implementation of the required Calibration")
@@ -332,10 +411,11 @@ if __name__ == '__main__':
     # STEREO CALIBRATION
     image_3D_left = Calibration.PreProcess(img_path_left)
     image_3D_right = Calibration.PreProcess(img_path_right)
-    predicted_world_point = Calibration.threeDReconstruation(image_3D_left, image_3D_right, 'Inputs/precomputed_points/3D_image_coordinate_left.txt',
+    predicted_world_point,image_points_3D_right, image_points_3D_left = Calibration.threeDReconstruation(image_3D_left, image_3D_right, 'Inputs/precomputed_points/3D_image_coordinate_left.txt',
                                                              'Inputs/precomputed_points/3D_image_coordinate_right.txt', camParameters_right, camParameters_left)
     Calibration.reconstruction(predicted_world_point)
     
     #EPIPOLAR LINES
     epi = Epipolar()
-    epi.epipolar_lines()
+    e_right, e_left, ptsRight, ptsLeft, FundMat, EssMat = epi.epiParameters(image_3D_left, image_3D_right, camParameters_right, camParameters_left, image_points_3D_right, image_points_3D_left)
+    epi.rectification(e_right, e_left, ptsRight, ptsLeft, FundMat, EssMat)
