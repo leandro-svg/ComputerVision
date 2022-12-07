@@ -345,10 +345,51 @@ class Epipolar(Calibration):
         cv.imwrite("output/epipolar/epi_lines_left.jpg.jpg", img2)
         
         return e_right, e_left, ptsRight, ptsLeft, FundMat, EssMat
+    
+    def compute_matching_homographies(self, e2, F, im2, points1, points2):
+        '''
+        Compute the matching homography matrices
+        '''
+        h, w = im2.shape
+        # create the homography matrix H2 that moves the epipole to infinity
         
-    def rectification(self, e_right, e_left, ptsRight, ptsLeft, FundMat, EssMat):
+        # create the translation matrix to shift to the image center
+        T = np.array([[1, 0, -w/2], [0, 1, -h/2], [0, 0, 1]])
+        e2_p = T @ e2
+        e2_p = e2_p / e2_p[2]
+        e2x = e2_p[0]
+        e2y = e2_p[1]
+        # create the rotation matrix to rotate the epipole back to X axis
+        if e2x >= 0:
+            a = 1
+        else:
+            a = -1
+        R1 = a * e2x / np.sqrt(e2x ** 2 + e2y ** 2)
+        R2 = a * e2y / np.sqrt(e2x ** 2 + e2y ** 2)
+        R = np.array([[R1, R2, 0], [-R2, R1, 0], [0, 0, 1]])
+        e2_p = R @ e2_p
+        x = e2_p[0]
+        # create matrix to move the epipole to infinity
+        G = np.array([[1, 0, 0], [0, 1, 0], [-1/x, 0, 1]])
+        # create the overall transformation matrix
+        H2 = np.linalg.inv(T) @ G @ R @ T
+
+        # create the corresponding homography matrix for the other image
+        e_x = np.array([[0, -e2[2], e2[1]], [e2[2], 0, -e2[0]], [-e2[1], e2[0], 0]])
+        M = e_x @ F + e2.reshape(3,1) @ np.array([[1, 1, 1]])
+        points1_t = H2 @ M @ points1.T
+        points2_t = H2 @ points2.T
+        points1_t /= points1_t[2, :]
+        points2_t /= points2_t[2, :]
+        b = points2_t[0, :]
+        a = np.linalg.lstsq(points1_t.T, b, rcond=None)[0]
+        H_A = np.array([a, [0, 1, 0], [0, 0, 1]])
+        H1 = H_A @ H2 @ M
+        return H1, H2
+
+    def rectification(self, im2, e_right, e_left, ptsRight, ptsLeft, FundMat, EssMat):
         print('rectification')
-        
+        H1, H2 = self.compute_matching_homographies(self, e_left, FundMat, im2, ptsRight, ptsLeft)
         
         
 
@@ -418,4 +459,4 @@ if __name__ == '__main__':
     #EPIPOLAR LINES
     epi = Epipolar()
     e_right, e_left, ptsRight, ptsLeft, FundMat, EssMat = epi.epiParameters(image_3D_left, image_3D_right, camParameters_right, camParameters_left, image_points_3D_right, image_points_3D_left)
-    epi.rectification(e_right, e_left, ptsRight, ptsLeft, FundMat, EssMat)
+    epi.rectification(image_3D_left, e_right, e_left, ptsRight, ptsLeft, FundMat, EssMat)
