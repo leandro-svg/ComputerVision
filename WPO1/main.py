@@ -19,13 +19,12 @@ def random_with_N_digits(n):
     return randint(range_start, range_end)
 
 def click_event(event, x, y, flags, params):
-    print(params)
     image3D, path = params
     if event == cv2.EVENT_LBUTTONDOWN:
         font = cv2.FONT_HERSHEY_SIMPLEX
         cv2.putText(image3D, str(x) + ',' +
                     str(y), (x,y), font,
-                    1, (255, 0, 0), 2)
+                    1, (255, 0, 0), 1)
 
         with open(path, 'a') as f:
             f.write(str(x) + ',' + str(y))
@@ -262,6 +261,16 @@ class Calibration():
         ax.scatter(predicted_world_point[:,0], predicted_world_point[:,1], predicted_world_point[:,2], c = 'r', s = 50)
         plt.savefig("output/3D_reconstruction.jpg")
         plt.show()
+    
+    def check(self):
+        print("We good in here")
+        
+        
+class Epipolar(Calibration):
+    def __init__(self, ):
+        super().__init__()
+    def epipolar_lines(self):
+        print("We good in here")
         
         
 def get_Parser():
@@ -305,16 +314,16 @@ if __name__ == '__main__':
     world_coord_file_left = args.txtfile
     Calibration = Calibration()
     image_left = Calibration.PreProcess(img_path_left)
-    image_points_left = Calibration.getPointsFromImage(image_left, 'Inputs/image_coordinate.txt', 0)
+    image_points_left = Calibration.getPointsFromImage(image_left, 'Inputs/precomputed_points/image_coordinate_left.txt', 0)
     M_left, image_coord_left, world_coord_left = Calibration.projectMatrix(image_points_left, world_coord_file_left)
     camParameters_left = Calibration.getCameraParameters(M_left, image_coord_left, world_coord_left)
     Calibration.verification(image_left,img_path_left,  camParameters_left, 0)
     
-    
+    #RIGHT IMAGE
     img_path_right = args.right
     world_coord_file_right = args.txtfile
     image_right = Calibration.PreProcess(img_path_right)
-    image_points_right = Calibration.getPointsFromImage(image_right, 'Inputs/image_coordinate_right.txt', 1)
+    image_points_right = Calibration.getPointsFromImage(image_right, 'Inputs/precomputed_points/image_coordinate_right.txt', 1)
     M_right, image_coord_right, world_coord_right = Calibration.projectMatrix(image_points_right, world_coord_file_right)
     camParameters_right = Calibration.getCameraParameters(M_right, image_coord_right, world_coord_right)
     Calibration.verification(image_right,img_path_right,  camParameters_right, 1)
@@ -323,5 +332,10 @@ if __name__ == '__main__':
     # STEREO CALIBRATION
     image_3D_left = Calibration.PreProcess(img_path_left)
     image_3D_right = Calibration.PreProcess(img_path_right)
-    predicted_world_point = Calibration.threeDReconstruation(image_3D_left, image_3D_right, 'Inputs/3D_image_coordinate_left.txt', 'Inputs/3D_image_coordinate_right.txt', camParameters_right, camParameters_left)
+    predicted_world_point = Calibration.threeDReconstruation(image_3D_left, image_3D_right, 'Inputs/precomputed_points/3D_image_coordinate_left.txt',
+                                                             'Inputs/precomputed_points/3D_image_coordinate_right.txt', camParameters_right, camParameters_left)
     Calibration.reconstruction(predicted_world_point)
+    
+    #EPIPOLAR LINES
+    epi = Epipolar()
+    epi.epipolar_lines()
