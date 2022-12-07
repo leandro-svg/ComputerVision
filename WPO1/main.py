@@ -350,7 +350,7 @@ class Epipolar(Calibration):
         
         return e_right, e_left, ptsRight, ptsLeft, FundMat, EssMat
     
-    def compute_matching_homographies(self, e2, F, im2, points1_, points2_):
+    def compute_matching_homographies(self, e2.T, F, im2, points1_, points2_):
         '''
         Compute the matching homography matrices
         '''
@@ -376,8 +376,6 @@ class Epipolar(Calibration):
         e2x = e2_p[0]
         e2y = e2_p[1]
         # create the rotation matrix to rotate the epipole back to X axis
-        e2x = np.linalg.norm(e2x)
-        e2y = np.linalg.norm(e2y)
         if e2x >= 0:
             a = 1
         else:
@@ -394,13 +392,12 @@ class Epipolar(Calibration):
 
         # create the corresponding homography matrix for the other image
         e_x = np.array([[0, -e2[2], e2[1]], [e2[2], 0, -e2[0]], [-e2[1], e2[0], 0]])
-        M = e_x @ F + e2[0,:].reshape(3,1) @ np.array([[1, 1, 1]])
+        M = e_x @ F + e2.reshape(3,1) @ np.array([[1, 1, 1]])
         points1_t = H2 @ M @ points1.T
         points2_t = H2 @ points2.T
         points1_t /= points1_t[2, :]
         points2_t /= points2_t[2, :]
         b = points2_t[0, :]
-        print(points1_t)
         a = np.linalg.lstsq(points1_t.T, b, rcond=None)[0]
         H_A = np.array([a, [0, 1, 0], [0, 0, 1]])
         H1 = H_A @ H2 @ M
