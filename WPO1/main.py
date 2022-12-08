@@ -261,7 +261,7 @@ class Calibration():
             
         ax.scatter(predicted_world_point[:,0], predicted_world_point[:,1], predicted_world_point[:,2], c = 'r', s = 50)
         plt.savefig("output/3D_reconstruction.jpg")
-        # plt.show()
+        plt.show()
         
     def computeCameraEye_PT(self, image_points, world_points):
         focal_length = 25
@@ -403,11 +403,11 @@ class Epipolar(Calibration):
         H1, H2, points1, points2 = self.compute_matching_homographies(e_right, FundMat, im1, ptsLeft,ptsRight )
  
         h, w, rgb = im2.shape
-        im1_warped = cv2.warpPerspective(im1, H2, (h,w))
-        im2_warped = cv2.warpPerspective(im2, H1, (h,w))
+        im1_warped = cv2.warpPerspective(im1, H2, (w,h))
+        im2_warped = cv2.warpPerspective(im2, H1, (w,h))
 
-        cv.imwrite("test.jpg", im1_warped)
-        cv.imwrite("test2.jpg", im2_warped)
+        cv.imwrite("output/epipolar/wraped_right.jpg", im1_warped)
+        cv.imwrite("output/epipolar/wraped_left.jpg", im2_warped)
         
         new_points1 = H1 @ points1.T
         new_points2 = H2 @ points2.T
@@ -416,18 +416,54 @@ class Epipolar(Calibration):
         new_points1 = new_points1.T
         new_points2 = new_points2.T
         
-        img1 = cv.imread("test.jpg")
+        e_right = H1 @ e_right.T
+        
+        
+        img1 = cv.imread("output/epipolar/wraped_right.jpg")
         color = tuple(np.random.randint(0,255,3).tolist())
-        for elem in new_points1:
-            img1 = cv.line(img1, (elem[0],elem[1]), (int(e_left[0]),int(e_left[1])), color,1)
-            img1 = cv.circle(img1,(elem[0],elem[1]),5,color,-1)
-        img2 = cv.imread("test2.jpg")
         for elem in new_points2:
-            img2 = cv.line(img2, (elem[0],elem[1]), (int(e_right[0]),int(e_right[1])), color,1)
-            img2 = cv.circle(img2,(elem[0],elem[1]),5,color,-1)
-        cv.imwrite("output/epipolar/epi_lines_left_reconstruct.jpg", img1)
-        cv.imwrite("output/epipolar/epi_lines_right_reconstruct.jpg", img2)
+            img1 = cv.line(img1, (int(elem[0]),int(elem[1])), (int(e_right[0]),int(e_right[1])), color,1)
+            img1 = cv.circle(img1,(int(elem[0]),int(elem[1])),5,color,-1)
+        img2 = cv.imread("output/epipolar/wraped_left.jpg")
+        for elem in new_points1:
+            img2 = cv.line(img2, (int(elem[0]),int(elem[1])), (int( e_left[0]),int(e_left[1])), color,1)
+            img2 = cv.circle(img2,(int(elem[0]),int(elem[1])),5,color,-1)
+        cv.imwrite("output/epipolar/epi_lines_right_reconstruct.jpg", img1)
+        cv.imwrite("output/epipolar/epi_lines_left_reconstruct.jpg", img2)
 
+
+        im1_warped = cv.imread("output/epipolar/wraped_right.jpg")
+        im2_warped = cv.imread("output/epipolar/wraped_left.jpg")
+
+        
+
+        nrows = 2
+        ncols = 1
+        fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=(6, 8))
+
+        # plot image 1
+        ax1 = axes[0]
+        ax1.set_title("Image 1 warped")
+        ax1.imshow( im2_warped, cmap="gray")
+
+        # plot image 2
+        ax2 = axes[1]
+        ax2.set_title("Image 2 warped")
+        ax2.imshow(im1_warped, cmap="gray")
+
+        # plot the epipolar lines and points
+        n = new_points1.shape[0]
+        for i in range(n):
+            p1 = new_points1[i]
+            p2 = new_points2[i]
+
+            ax1.hlines(p2[1], 0, w, color="orange")
+            ax1.scatter(*p1[:2], color="blue")
+
+            ax2.hlines(p1[1], 0, w, color="orange")
+            ax2.scatter(*p2[:2], color="blue")
+        plt.show()
+        
 def get_Parser():
     parser = argparse.ArgumentParser(
             description="Implementation of the required Calibration")
