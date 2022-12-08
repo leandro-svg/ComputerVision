@@ -382,9 +382,7 @@ class Epipolar(Calibration):
         R = np.array([[R1, R2, 0], [-R2, R1, 0], [0, 0, 1]])
         e2_p = R @ e2_p
         x = e2_p[0]
-        # create matrix to move the epipole to infinity
         G = np.array([[1, 0, 0], [0, 1, 0], [-1/x, 0, 1]])
-        # create the overall transformation matrix
         H2 = np.linalg.inv(T) @ G @ R @ T
 
         e_x = np.array([[0, -e2[2], e2[1]], [e2[2], 0, -e2[0]], [-e2[1], e2[0], 0]])
@@ -416,7 +414,6 @@ class Epipolar(Calibration):
         new_points1 = new_points1.T
         new_points2 = new_points2.T
         
-        e_right = H1 @ e_right.T
         
         
         img1 = cv.imread("output/epipolar/wraped_right.jpg")
