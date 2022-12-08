@@ -311,8 +311,7 @@ class Epipolar(Calibration):
         
         FundMat, mask = cv2.findFundamentalMat(ptsLeft,ptsRight,cv2.FM_LMEDS)
         EssMat = np.matmul(K_right.T, np.matmul(FundMat, K_left))
-
-
+        
         new_ptsLeft = np.append(ptsLeft[0,:], [1])
         new_ptsRight = np.append(ptsRight[0,:], [1])
         p_left = np.matmul(np.linalg.pinv(K_left), new_ptsLeft)
@@ -342,7 +341,7 @@ class Epipolar(Calibration):
             img2 = cv.line(img2, (elem[0],elem[1]), (int(e_right[0]),int(e_right[1])), color,1)
             img2 = cv.circle(img2,(elem[0],elem[1]),5,color,-1)
         cv.imwrite("output/epipolar/epi_lines_left.jpg", img1)
-        cv.imwrite("output/epipolar/epi_lines_left.jpg.jpg", img2)
+        cv.imwrite("output/epipolar/epi_lines_right.jpg", img2)
         
         
         return e_right, e_left, ptsRight, ptsLeft, FundMat, EssMat
@@ -409,6 +408,25 @@ class Epipolar(Calibration):
 
         cv.imwrite("test.jpg", im1_warped)
         cv.imwrite("test2.jpg", im2_warped)
+        
+        new_points1 = H1 @ points1.T
+        new_points2 = H2 @ points2.T
+        new_points1 /= new_points1[2,:]
+        new_points2 /= new_points2[2,:]
+        new_points1 = new_points1.T
+        new_points2 = new_points2.T
+        
+        img1 = cv.imread("test.jpg")
+        color = tuple(np.random.randint(0,255,3).tolist())
+        for elem in new_points1:
+            img1 = cv.line(img1, (elem[0],elem[1]), (int(e_left[0]),int(e_left[1])), color,1)
+            img1 = cv.circle(img1,(elem[0],elem[1]),5,color,-1)
+        img2 = cv.imread("test2.jpg")
+        for elem in new_points2:
+            img2 = cv.line(img2, (elem[0],elem[1]), (int(e_right[0]),int(e_right[1])), color,1)
+            img2 = cv.circle(img2,(elem[0],elem[1]),5,color,-1)
+        cv.imwrite("output/epipolar/epi_lines_left_reconstruct.jpg", img1)
+        cv.imwrite("output/epipolar/epi_lines_right_reconstruct.jpg", img2)
 
 def get_Parser():
     parser = argparse.ArgumentParser(
