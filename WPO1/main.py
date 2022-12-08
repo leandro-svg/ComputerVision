@@ -318,12 +318,6 @@ class Epipolar(Calibration):
         p_left = np.matmul(np.linalg.pinv(K_left), new_ptsLeft)
         p_right = np.matmul(np.linalg.pinv(K_right), new_ptsRight)
         
-        
-        # Should be zero
-        epiLine = np.matmul(p_right.T,np.matmul(EssMat, p_left))
-        zero = np.matmul(new_ptsRight.T,np.matmul(FundMat, new_ptsLeft))
-        
-        #Find epipoles = F*e = 0 
         u, s, vh = np.linalg.svd(FundMat)
         v = vh.T
         e = v[:, -1]
@@ -336,6 +330,8 @@ class Epipolar(Calibration):
         norm_3 = e_2[-1]
         e_right = (e_2/norm_3)
         
+        print("This should be zero : ",np.round(e_right.T @ FundMat @ e_left))
+
         img1 = cv.imread("Inputs/left.jpg")
         color = tuple(np.random.randint(0,255,3).tolist())
         for elem in ptsLeft:
@@ -348,12 +344,11 @@ class Epipolar(Calibration):
         cv.imwrite("output/epipolar/epi_lines_left.jpg", img1)
         cv.imwrite("output/epipolar/epi_lines_left.jpg.jpg", img2)
         
+        
         return e_right, e_left, ptsRight, ptsLeft, FundMat, EssMat
     
-    def compute_matching_homographies(self, e2.T, F, im2, points1_, points2_):
-        '''
-        Compute the matching homography matrices
-        '''
+    def compute_matching_homographies(self, e2, F, im2, points1_, points2_):
+  
         points1 = np.array([])
         for elem in points1_:
             elem = np.append(elem, [1])
@@ -366,11 +361,14 @@ class Epipolar(Calibration):
             points2 = np.append(points2, [elem])
         points2 = np.reshape(points2, (np.shape(points2_)[0],3))
         
-        h, w, rgb = im2.shape
-        # create the homography matrix H2 that moves the epipole to infinity
         
-        # create the translation matrix to shift to the image center
+        p1 = points1.T[:, 0]
+        p2 = points2.T[:, 0]
+        print("This should be zero : ",np.round(p2.T @ FundMat @ p1))
+        
+        h, w, rgb = im2.shape
         T = np.array([[1, 0, -w/2], [0, 1, -h/2], [0, 0, 1]])
+        
         e2_p = T @ e2
         e2_p = e2_p / e2_p[2]
         e2x = e2_p[0]
@@ -390,7 +388,6 @@ class Epipolar(Calibration):
         # create the overall transformation matrix
         H2 = np.linalg.inv(T) @ G @ R @ T
 
-        # create the corresponding homography matrix for the other image
         e_x = np.array([[0, -e2[2], e2[1]], [e2[2], 0, -e2[0]], [-e2[1], e2[0], 0]])
         M = e_x @ F + e2.reshape(3,1) @ np.array([[1, 1, 1]])
         points1_t = H2 @ M @ points1.T
@@ -404,18 +401,11 @@ class Epipolar(Calibration):
         return H1, H2, points1, points2
 
     def rectification(self, im1, im2, e_right, e_left, ptsRight, ptsLeft, FundMat, EssMat):
-        H1, H2, points1, points2 = self.compute_matching_homographies(e_left, FundMat, im2, ptsRight, ptsLeft)
-        # Transform points based on the homography matrix
-        new_points1 = H1 @ points1.T
-        new_points2 = H2 @ points2.T
-        new_points1 /= new_points1[2,:]
-        new_points2 /= new_points2[2,:]
-        new_points1 = new_points1.T
-        new_points2 = new_points2.T
-
-        # warp images based on the homography matrix
-        im1_warped = warp(im2, ProjectiveTransform(matrix=np.linalg.inv(H1)))
-        im2_warped = warp(im1, ProjectiveTransform(matrix=np.linalg.inv(H2)))
+        H1, H2, points1, points2 = self.compute_matching_homographies(e_right, FundMat, im1, ptsLeft,ptsRight )
+ 
+        h, w, rgb = im2.shape
+        im1_warped = cv2.warpPerspective(im1, H2, (h,w))
+        im2_warped = cv2.warpPerspective(im2, H1, (h,w))
 
         cv.imwrite("test.jpg", im1_warped)
         cv.imwrite("test2.jpg", im2_warped)
@@ -486,4 +476,4 @@ if __name__ == '__main__':
     #EPIPOLAR LINES
     epi = Epipolar()
     e_right, e_left, ptsRight, ptsLeft, FundMat, EssMat = epi.epiParameters(image_3D_left, image_3D_right, camParameters_right, camParameters_left, image_points_3D_right, image_points_3D_left)
-    epi.rectification(image_3D_right, image_3D_left, e_left, FundMat, ptsRight, ptsLeft, FundMat, EssMat)
+    epi.rectification(image_3D_right, image_3D_left, e_right, e_left, ptsRight, ptsLeft, FundMat, EssMat)
