@@ -43,42 +43,49 @@ class OpticalFlow():
         if len(image_path) == 1:
             image_path = glob.glob(os.path.expanduser(image_path[0]))
             assert image_path, "The input path(s) was not found"
+            
+        images = []
         for img_path in tqdm.tqdm(image_path):
             img = cv2.imread(img_path)
+            images.append(img)
             real_image = img.copy()
             
-        img1 = cv2.imread(image_path[4], cv2.IMREAD_GRAYSCALE)
-        img2 = cv2.imread(image_path[5], cv2.IMREAD_GRAYSCALE)
-        img_1_x = cv2.Sobel(img1, cv2.CV_64F, 1, 0, ksize=3, borderType=cv.BORDER_DEFAULT)
-        img_1_y = cv2.Sobel(img1, cv2.CV_64F, 0, 1, ksize=3, borderType=cv.BORDER_DEFAULT)
-        img_2_x = cv2.Sobel(img2, cv2.CV_64F, 1, 0, ksize=3, borderType=cv.BORDER_DEFAULT)
-        img_2_y = cv2.Sobel(img2, cv2.CV_64F, 0, 1, ksize=3, borderType=cv.BORDER_DEFAULT)
-        
-        img1 = cv2.GaussianBlur(img1, (5, 5), 0)
-        img2 = cv2.GaussianBlur(img2, (5, 5), 0)
-        
-        Ix =  img_2_x
-        Iy = img_2_y
-        It = img1 - img2 
-        
-        u,v, iteration  = 0,0,0
-        avg_u = u
-        avg_v = v
-        
-        while iteration < 1e2:
+        for index in range(1,len(images)):
+
+            img1 = cv2.imread(image_path[index-1], cv2.IMREAD_GRAYSCALE)
+            img2 = cv2.imread(image_path[index], cv2.IMREAD_GRAYSCALE)
+            img_1_x = cv2.Sobel(img1, cv2.CV_64F, 1, 0, ksize=3, borderType=cv.BORDER_DEFAULT)
+            img_1_y = cv2.Sobel(img1, cv2.CV_64F, 0, 1, ksize=3, borderType=cv.BORDER_DEFAULT)
+            img_2_x = cv2.Sobel(img2, cv2.CV_64F, 1, 0, ksize=3, borderType=cv.BORDER_DEFAULT)
+            img_2_y = cv2.Sobel(img2, cv2.CV_64F, 0, 1, ksize=3, borderType=cv.BORDER_DEFAULT)
             
-            u = avg_u - (Ix*avg_u + Iy*avg_v + It)*Ix/(1+ 1*(Ix ** 2 + Iy ** 2))
-            v = avg_v - (Ix*avg_u + Iy*avg_v + It)*Iy/(1+ 1*(Ix ** 2 + Iy ** 2))
-            print(u)
-            kernel = np.ones((5,5),np.float32)/25
-            avg_u = cv.filter2D(u,-1,kernel)
-            avg_v = cv.filter2D(v,-1,kernel)
+            img1 = cv2.GaussianBlur(img1, (5, 5), 0)
+            img2 = cv2.GaussianBlur(img2, (5, 5), 0)
             
-            iteration += 1
+            Ix =  img_1_x  + img_2_x
+            Iy = img_1_y + img_2_y
+            It = img1 - img2 
             
-        flow = flow_uv_to_colors(u,v)
-        plt.imshow(flow)
-        plt.show()
+            u,v, iteration  = 0,0,0
+            avg_u = u
+            avg_v = v
+            
+            while iteration < 1e2:
+                
+                u = avg_u - (Ix*avg_u + Iy*avg_v + It)*Ix/(1+ 1*(Ix ** 2 + Iy ** 2))
+                v = avg_v - (Ix*avg_u + Iy*avg_v + It)*Iy/(1+ 1*(Ix ** 2 + Iy ** 2))
+                kernel = np.ones((2,2),np.float32)/25
+                avg_u = cv.filter2D(u,-1,kernel)
+                avg_v = cv.filter2D(v,-1,kernel)
+                
+                iteration += 1
+                
+            flow = flow_uv_to_colors(u,v)
+            plt.imshow(flow)
+            plt.show()
+            cv2.waitKey(11000)
+            cv2.destroyAllWindows()
+
             
        
 
