@@ -67,7 +67,7 @@ class OpticalFlow():
         while iteration < 10e3:
             
             u = avg_u +
-            v = avg_v + 
+            v = avg_v + __
             
             kernel = np.ones((5,5),np.float32)/25
             avg_u = cv.filter2D(u,-1,kernel)
