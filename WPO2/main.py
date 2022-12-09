@@ -71,7 +71,7 @@ class OpticalFlow():
             
             mode = 'same'
             # It = img1 - img2 
-            It = signal.convolve2d(img2, kernel_t, boundary='symm', mode=mode) + signal.convolve2d(img1, - kernel_t, boundary='symm')
+            It = signal.convolve2d(img2, kernel_t, boundary='symm', mode=mode) + signal.convolve2d(img1, - kernel_t, boundary='symm', mode=mode)
             avg_u,avg_v,u,v, iteration  = 0,0,0,0,0
             avg_u = u
             avg_v = v
