@@ -56,8 +56,8 @@ class OpticalFlow():
         fx = img_1_x + img_2_x
         fy = img_1_y + img_2_y
         
-        # img1 = cv2.GaussianBlur(img1, (5, 5), 0)
-        # img2 = cv2.GaussianBlur(img2, (5, 5), 0)
+        img1 = cv2.GaussianBlur(img1, (5, 5), 0)
+        img2 = cv2.GaussianBlur(img2, (5, 5), 0)
 
     
         
