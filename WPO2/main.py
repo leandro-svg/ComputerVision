@@ -53,11 +53,28 @@ class OpticalFlow():
         img_2_x = cv2.Sobel(img2, cv2.CV_64F, 1, 0, ksize=3, borderType=cv.BORDER_DEFAULT)
         img_2_y = cv2.Sobel(img2, cv2.CV_64F, 0, 1, ksize=3, borderType=cv.BORDER_DEFAULT)
         
-        fx = img_1_x + img_2_x
-        fy = img_1_y + img_2_y
-        
         img1 = cv2.GaussianBlur(img1, (5, 5), 0)
         img2 = cv2.GaussianBlur(img2, (5, 5), 0)
+        
+        Ix = img_1_x + img_2_x
+        Iy = img_1_y + img_2_y
+        It = img1 - img2 
+        
+        u,v, iteration  = 0,0,0
+        avg_u = u
+        avg_v = v
+        
+        while iteration < 10e3:
+            
+            u = avg_u +
+            v = avg_v + 
+            
+            kernel = np.ones((5,5),np.float32)/25
+            avg_u = cv.filter2D(u,-1,kernel)
+            avg_v = cv.filter2D(v,-1,kernel)
+            
+            iteration += 1
+       
 
     
         
