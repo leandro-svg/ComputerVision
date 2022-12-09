@@ -68,9 +68,10 @@ class OpticalFlow():
             kernel_t = np.array([[1., 1.], [1., 1.]])
             Ix =  img_1_x # + img_2_x
             Iy = img_1_y # + img_2_y
-            # It = img1 - img2 
+            
             mode = 'same'
-            It = signal.convolve2d(img2, kernel_t, boundary='symm', mode=mode) + signal.convolve2d(img1, - kernel_t, boundary='symm', mode=mode)
+            # It = img1 - img2 
+            It = signal.convolve2d(img2, kernel_t, boundary='symm', mode=mode) + signal.convolve2d(img1, - kernel_t, boundary='symm')
             avg_u,avg_v,u,v, iteration  = 0,0,0,0,0
             avg_u = u
             avg_v = v
