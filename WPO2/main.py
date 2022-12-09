@@ -12,6 +12,7 @@ from skimage.transform import warp, ProjectiveTransform
 from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from view_flow import flow_uv_to_colors
 
 # plt.style.use('seaborn-poster')
 
@@ -46,8 +47,8 @@ class OpticalFlow():
             img = cv2.imread(img_path)
             real_image = img.copy()
             
-        img1 = cv2.imread(image_path[4])
-        img2 = cv2.imread(image_path[5])
+        img1 = cv2.imread(image_path[4], cv2.IMREAD_GRAYSCALE)
+        img2 = cv2.imread(image_path[5], cv2.IMREAD_GRAYSCALE)
         img_1_x = cv2.Sobel(img1, cv2.CV_64F, 1, 0, ksize=3, borderType=cv.BORDER_DEFAULT)
         img_1_y = cv2.Sobel(img1, cv2.CV_64F, 0, 1, ksize=3, borderType=cv.BORDER_DEFAULT)
         img_2_x = cv2.Sobel(img2, cv2.CV_64F, 1, 0, ksize=3, borderType=cv.BORDER_DEFAULT)
@@ -56,24 +57,29 @@ class OpticalFlow():
         img1 = cv2.GaussianBlur(img1, (5, 5), 0)
         img2 = cv2.GaussianBlur(img2, (5, 5), 0)
         
-        Ix = img_1_x + img_2_x
-        Iy = img_1_y + img_2_y
+        Ix =  img_2_x
+        Iy = img_2_y
         It = img1 - img2 
         
         u,v, iteration  = 0,0,0
         avg_u = u
         avg_v = v
         
-        while iteration < 10e3:
+        while iteration < 1e2:
             
-            u = avg_u +
-            v = avg_v + 
+            u = avg_u - (Ix*avg_u + Iy*avg_v + It)*Ix/(1+ 1*(Ix ** 2 + Iy ** 2))
+            v = avg_v - (Ix*avg_u + Iy*avg_v + It)*Iy/(1+ 1*(Ix ** 2 + Iy ** 2))
             
             kernel = np.ones((5,5),np.float32)/25
             avg_u = cv.filter2D(u,-1,kernel)
             avg_v = cv.filter2D(v,-1,kernel)
             
             iteration += 1
+            
+        flow = flow_uv_to_colors(u,v)
+        plt.imshow(flow)
+        plt.show()
+            
        
 
     
@@ -85,7 +91,7 @@ def get_Parser():
         "--input",
         default="/home/leand/ULB_course/ComputerVision/WPO2/Basketball/frame1.png",
         nargs="+",
-        help="A file or directory of your input data ",
+        help="A file or directory of your input dat",
         )
     
     return parser
