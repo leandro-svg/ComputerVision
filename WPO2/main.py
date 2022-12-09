@@ -13,6 +13,7 @@ from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from view_flow import flow_uv_to_colors
+from scipy import signal
 
 # plt.style.use('seaborn-poster')
 
@@ -54,6 +55,8 @@ class OpticalFlow():
 
             img1 = cv2.imread(image_path[index-1], cv2.IMREAD_GRAYSCALE)
             img2 = cv2.imread(image_path[index], cv2.IMREAD_GRAYSCALE)
+            img1 = img1/255
+            img2 = img2/255
             img_1_x = cv2.Sobel(img1, cv2.CV_64F, 1, 0, ksize=3, borderType=cv.BORDER_DEFAULT)
             img_1_y = cv2.Sobel(img1, cv2.CV_64F, 0, 1, ksize=3, borderType=cv.BORDER_DEFAULT)
             img_2_x = cv2.Sobel(img2, cv2.CV_64F, 1, 0, ksize=3, borderType=cv.BORDER_DEFAULT)
@@ -62,14 +65,15 @@ class OpticalFlow():
             img1 = cv2.GaussianBlur(img1, (5, 5), 0)
             img2 = cv2.GaussianBlur(img2, (5, 5), 0)
             
-            Ix =  img_1_x  + img_2_x
-            Iy = img_1_y + img_2_y
-            It = img1 - img2 
-            
-            u,v, iteration  = 0,0,0
+            kernel_t = np.array([[1., 1.], [1., 1.]])
+            Ix =  img_1_x # + img_2_x
+            Iy = img_1_y # + img_2_y
+            # It = img1 - img2 
+            mode = 'same'
+            It = signal.convolve2d(img2, kernel_t, boundary='symm', mode=mode) + signal.convolve2d(img1, - kernel_t, boundary='symm', mode=mode)
+            avg_u,avg_v,u,v, iteration  = 0,0,0,0,0
             avg_u = u
             avg_v = v
-            
             while iteration < 1e2:
                 
                 u = avg_u - (Ix*avg_u + Iy*avg_v + It)*Ix/(1+ 1*(Ix ** 2 + Iy ** 2))
@@ -83,7 +87,7 @@ class OpticalFlow():
             flow = flow_uv_to_colors(u,v)
             plt.imshow(flow)
             plt.show()
-            cv2.waitKey(11000)
+            cv2.waitKey(0)
             cv2.destroyAllWindows()
 
             
