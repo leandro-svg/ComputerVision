@@ -69,7 +69,7 @@ class OpticalFlow():
             
             u = avg_u - (Ix*avg_u + Iy*avg_v + It)*Ix/(1+ 1*(Ix ** 2 + Iy ** 2))
             v = avg_v - (Ix*avg_u + Iy*avg_v + It)*Iy/(1+ 1*(Ix ** 2 + Iy ** 2))
-            
+            print(u)
             kernel = np.ones((5,5),np.float32)/25
             avg_u = cv.filter2D(u,-1,kernel)
             avg_v = cv.filter2D(v,-1,kernel)
