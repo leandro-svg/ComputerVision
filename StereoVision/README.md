@@ -45,4 +45,7 @@ After having run the two codes (First Calibration, then Epipolar), you can find 
 - Parameters.txt : The two parameters for right and left images and the MSE at the end
 - In the output/calibration directory : 
     - reconstructed_left_monocular and reconstructed_right_monocular are visualization of the world axes in both left and right images
-    - 3D_reconstruction_i are the reconstruction of the scene in 3D for different angle
+    - 3D_reconstruction_i are the reconstruction of the scene in 3D for different angles
+- In the output/epipolar directory : 
+    - epi_lines_left and epi_lines_right are original epipolar lines 
+    - epi_lines_left_rectification  and epi_lines_left_rectification  are the images rectified with the parallel lines
