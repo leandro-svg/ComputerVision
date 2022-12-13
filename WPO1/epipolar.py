@@ -15,7 +15,7 @@ from utils.plot import plot_cube, plot_structure, plot_triangle
 from utils.general import click_event, random_with_N_digits, txt2array, txt2array_img
 from utils.general import ToHomogeneous
 from utils.math import SVD, SVD_coord
-from main import Calibration, main
+from main import Calibration, main as main_calib
 
 class Epipolar(Calibration):
     def __init__(self, ):
@@ -196,7 +196,7 @@ def main_epi(epi, args):
     #                                                          'Inputs/precomputed_points/RIGHTIMG1.txt', camParameters_right, camParameters_left)
     
     
-    predicted_world_point, image_3D_left, image_3D_right, camParameters_right, camParameters_left, image_points_3D_right, image_points_3D_left = main(args)
+    predicted_world_point, image_3D_left, image_3D_right, camParameters_right, camParameters_left, image_points_3D_right, image_points_3D_left = main_calib(args)
     #EPIPOLAR LINES
     e_right, e_left, ptsRight, ptsLeft, FundMat, EssMat = epi.epiParameters(image_3D_left, image_3D_right, camParameters_right, camParameters_left, image_points_3D_right, image_points_3D_left)
     epi.rectification(image_3D_right, image_3D_left, e_right, e_left, ptsRight, ptsLeft, FundMat, EssMat)    
