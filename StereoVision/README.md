@@ -6,8 +6,8 @@
  -  Ubuntu 20.04.5 LTS
 
 - ```
-pip3 install requirements.txt
-```
+    pip3 install requirements.txt
+    ```
 
  ## Running Calibration 
 To run the calibration code, you can enter the following command in your terminal : 
