@@ -40,4 +40,8 @@ or : ```
      ```
 
 
-
+## Expected output : 
+After having run the two codes (First Calibration, then Epipolar), you can find the following output :
+- Parameters.txt : The two parameters for right and left images and the MSE at the end
+- In the output/calibration directory : - reconstructed_left_monocular and reconstructed_right_monocular are visualization of the world axes in both left and right images
+                                        - 3D_reconstruction_i are the reconstruction of the scene in 3D for different angle
