@@ -10,10 +10,11 @@ from skimage.transform import warp, ProjectiveTransform
 from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+import json
 
 from utils.plot import plot_cube, plot_structure, plot_triangle
 from utils.general import click_event, random_with_N_digits, txt2array, txt2array_img
-from utils.general import ToHomogeneous
+from utils.general import ToHomogeneous, write_file
 from utils.math import SVD, SVD_coord
 # plt.style.use('seaborn-poster')
 
@@ -21,23 +22,23 @@ from utils.math import SVD, SVD_coord
 class Calibration():
     def __init__(self, ):
         super().__init__()
-    def PreProcess(self, img_path):
+    def PreProcess(img_path):
         
         image = cv2.imread(img_path)
         return image
 
-    def getPointsFromImage(self, image3D, path, choice):
+    def getPointsFromImage(image3D, path, choice):
         if not(os.path.isfile(path)):
             cv2.imshow('image', image3D)
             cv2.setMouseCallback('image', click_event, (image3D, path))
             cv2.waitKey(0)
             cv2.destroyAllWindows()
         else:
-            print("Image Coordinate file already exists, we will work with it")
+            pass
         image_coord = txt2array_img(path)
         return image_coord
 
-    def projectMatrix(self, image_coord_temp, world_coord_file):
+    def projectMatrix(image_coord_temp, world_coord_file):
         world_coord_temp = txt2array(world_coord_file)
         
         world_coord = ToHomogeneous(world_coord_temp, 4)
@@ -54,7 +55,7 @@ class Calibration():
         M = SVD(P)
         return M, image_coord.T, world_coord.T
 
-    def getCameraParameters(self, M, image_coord, world_coord):
+    def getCameraParameters(path, M, image_coord, world_coord):
         m_1  = M[0, 0:3]
         m_2 = M[1, 0:3]
         m_3 = M[2,0:3]
@@ -81,7 +82,7 @@ class Calibration():
         extrinsic_add = np.concatenate((extrinsic, added))
         
         camParameters = {}
-        
+        camParameters["Path of image calibrated"] = path
         camParameters["ImageCoordinate"] = image_coord
         camParameters["WorldCoordinate"] = world_coord
         camParameters["ProjectionMatrix"] = M
@@ -89,11 +90,12 @@ class Calibration():
         camParameters["Extrinsic"] = extrinsic_add
         camParameters["RotationMatrix"] = R
         camParameters["TranslationMatrix"] = T
-        print(camParameters)
+        
+        write_file(camParameters)
         return camParameters
     
         
-    def verification(self, image_left,path,  camParameters, intege):
+    def verification( image_left,path,  camParameters, intege):
         project  = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0]])
         K  = np.matmul(camParameters["Intrinsic"], project)
         world2image = np.matmul(K,camParameters["Extrinsic"])
@@ -112,9 +114,9 @@ class Calibration():
         elif (intege == 1):
             cv2.imwrite("./output/calibration/reconstructed_right_monocular.jpg", image)
      
-    def threeDReconstruation(self,image_3D_left,image_3D_right, path_3D_left, path_3D_right, camParameters_right, camParameters_left ):
-        image_points_3D_left = (self.getPointsFromImage(image_3D_left, path_3D_left, 2)).T
-        image_points_3D_right = (self.getPointsFromImage(image_3D_right, path_3D_right, 3)).T
+    def threeDReconstruation(image_3D_left,image_3D_right, path_3D_left, path_3D_right, camParameters_right, camParameters_left ):
+        image_points_3D_left = (Calibration.getPointsFromImage(image_3D_left, path_3D_left, 2)).T
+        image_points_3D_right = (Calibration.getPointsFromImage(image_3D_right, path_3D_right, 3)).T
         
         project_left  = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0]])
         K_left  = np.matmul(camParameters_left["Intrinsic"], project_left)
@@ -153,11 +155,14 @@ class Calibration():
         predicted_world_point = pred_world_mat[:,0:3]
         pannel = predicted_world_point[0:12, :]
         mse = (np.square(world_coord[0:3,:] - pannel.T)).mean()
-        print("Mean Squared Error between Real World Coordinates: and Predicted World Coordinates : ", mse) 
+        with open('Parameters.txt', 'a') as convert_file:
+            convert_file.write("Mean Squared Error between Real World Coordinates: and Predicted World Coordinates : " + str(mse))
+        with open('Parameters.txt', 'a') as convert_file:
+            convert_file.write(str('\n\n'))
         return predicted_world_point, image_points_3D_right, image_points_3D_left
         
     
-    def reconstruction(self, predicted_world_point):
+    def reconstruction( predicted_world_point):
         fig = plt.figure(figsize = (7,7))
         ax = plt.axes(projection='3d')
         pannel = predicted_world_point[0:12, :]
@@ -203,38 +208,41 @@ class Calibration():
             rotation_matrix = cv2.Rodrigues(np.array(rvec))[0]
             cameraEye = - np.transpose(rotation_matrix) @ tvec
     
-def main(calib, args):
+def main(args):
     
     img_path = args.input
-    
+    file_path = args.parametersFile
+    if os.path.isfile(file_path):
+        os.remove(file_path)
+    else:
+        pass
     # LEFT IMAGE
     img_path_left = args.left
     world_coord_file_left = args.txtfile
     
-    image_left = calib.PreProcess(img_path_left)
-    image_points_left = calib.getPointsFromImage(image_left, 'Inputs/precomputed_points/LEFTCAL.txt', 0)
-    M_left, image_coord_left, world_coord_left = calib.projectMatrix(image_points_left, world_coord_file_left)
-    camParameters_left = calib.getCameraParameters(M_left, image_coord_left, world_coord_left)
-    calib.verification(image_left,img_path_left,  camParameters_left, 0)
+    image_left = Calibration.PreProcess(img_path_left)
+    image_points_left = Calibration.getPointsFromImage(image_left, 'Inputs/precomputed_points/LEFTCAL.txt', 0)
+    M_left, image_coord_left, world_coord_left = Calibration.projectMatrix(image_points_left, world_coord_file_left)
+    camParameters_left = Calibration.getCameraParameters(img_path_left, M_left, image_coord_left, world_coord_left)
+    Calibration.verification(image_left,img_path_left,  camParameters_left, 0)
     
     #RIGHT IMAGE
     img_path_right = args.right
     world_coord_file_right = args.txtfile
-    image_right = calib.PreProcess(img_path_right)
-    image_points_right = calib.getPointsFromImage(image_right, 'Inputs/precomputed_points/RIGHTCAL.txt', 1)
-    M_right, image_coord_right, world_coord_right = calib.projectMatrix(image_points_right, world_coord_file_right)
-    camParameters_right = calib.getCameraParameters(M_right, image_coord_right, world_coord_right)
-    calib.verification(image_right,img_path_right,  camParameters_right, 1)
+    image_right = Calibration.PreProcess(img_path_right)
+    image_points_right = Calibration.getPointsFromImage(image_right, 'Inputs/precomputed_points/RIGHTCAL.txt', 1)
+    M_right, image_coord_right, world_coord_right = Calibration.projectMatrix(image_points_right, world_coord_file_right)
+    camParameters_right = Calibration.getCameraParameters(img_path_right, M_right, image_coord_right, world_coord_right)
+    Calibration.verification(image_right,img_path_right,  camParameters_right, 1)
     
     
     # STEREO CALIBRATION
-    image_3D_left = calib.PreProcess(img_path_left)
-    image_3D_right = calib.PreProcess(img_path_right)
-    predicted_world_point,image_points_3D_right, image_points_3D_left = calib.threeDReconstruation(image_3D_left, image_3D_right, 'Inputs/precomputed_points/LEFTIMG1.txt',
+    image_3D_left = Calibration.PreProcess(img_path_left)
+    image_3D_right = Calibration.PreProcess(img_path_right)
+    predicted_world_point,image_points_3D_right, image_points_3D_left = Calibration.threeDReconstruation(image_3D_left, image_3D_right, 'Inputs/precomputed_points/LEFTIMG1.txt',
                                                             'Inputs/precomputed_points/RIGHTIMG1.txt', camParameters_right, camParameters_left)
-    calib.reconstruction(predicted_world_point)
     
- 
+    return predicted_world_point, image_3D_left, image_3D_right, camParameters_right, camParameters_left, image_points_3D_right, image_points_3D_left
         
 def get_Parser():
     parser = argparse.ArgumentParser(
@@ -265,11 +273,17 @@ def get_Parser():
             type=str,
             help="text file where the woolrd coordinates are",
             )
+    parser.add_argument(
+            "--parametersFile",
+            default="Parameters.txt",
+            type=str,
+            help="Cam parameters Results",
+            )
     return parser
 
 
 if __name__ == '__main__':
-    calib = Calibration()
     args = get_Parser().parse_args()
-    main(calib, args)
-    
+    predicted_world_point, image_3D_left, image_3D_right, camParameters_right, camParameters_left, image_points_3D_right, image_points_3D_left =main(args)
+    Calibration.reconstruction(predicted_world_point)
+

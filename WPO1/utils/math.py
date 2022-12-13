@@ -8,7 +8,6 @@ def SVD(P):
     M = np.reshape(M, (3,4))
     norm_3 = np.linalg.norm(M[2,:])
     M = M/norm_3
-    
     return M
 
 def SVD_coord(A):

@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 from random import randint
-
+import os
 def random_with_N_digits(n):
     range_start = 10**(n-1)
     range_end = (10**n)-1
@@ -50,3 +50,13 @@ def ToHomogeneous(world_coord_temp, shape):
         world_coord = np.append(world_coord, [elem])
     world_coord = np.reshape(world_coord, (np.shape(world_coord_temp)[0],shape))
     return world_coord
+
+def write_file(camParameters):
+    file_path = 'Parameters.txt'
+  
+    with open(file_path, 'a') as f:
+        for key, value in camParameters.items(): 
+            f.write('%s:%s\n' % (key, value))
+        # convert_file.write(str(camParameters))
+    with open(file_path, 'a') as convert_file:
+        convert_file.write(str('\n\n'))
