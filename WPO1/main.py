@@ -203,7 +203,37 @@ class Calibration():
             rotation_matrix = cv2.Rodrigues(np.array(rvec))[0]
             cameraEye = - np.transpose(rotation_matrix) @ tvec
     
-        
+def main(Calibration):
+    args = get_Parser().parse_args()
+    img_path = args.input
+    
+    # LEFT IMAGE
+    img_path_left = args.left
+    world_coord_file_left = args.txtfile
+    
+    image_left = Calibration.PreProcess(img_path_left)
+    image_points_left = Calibration.getPointsFromImage(image_left, 'Inputs/precomputed_points/LEFTCAL.txt', 0)
+    M_left, image_coord_left, world_coord_left = Calibration.projectMatrix(image_points_left, world_coord_file_left)
+    camParameters_left = Calibration.getCameraParameters(M_left, image_coord_left, world_coord_left)
+    Calibration.verification(image_left,img_path_left,  camParameters_left, 0)
+    
+    #RIGHT IMAGE
+    img_path_right = args.right
+    world_coord_file_right = args.txtfile
+    image_right = Calibration.PreProcess(img_path_right)
+    image_points_right = Calibration.getPointsFromImage(image_right, 'Inputs/precomputed_points/RIGHTCAL.txt', 1)
+    M_right, image_coord_right, world_coord_right = Calibration.projectMatrix(image_points_right, world_coord_file_right)
+    camParameters_right = Calibration.getCameraParameters(M_right, image_coord_right, world_coord_right)
+    Calibration.verification(image_right,img_path_right,  camParameters_right, 1)
+    
+    
+    # STEREO CALIBRATION
+    image_3D_left = Calibration.PreProcess(img_path_left)
+    image_3D_right = Calibration.PreProcess(img_path_right)
+    predicted_world_point,image_points_3D_right, image_points_3D_left = Calibration.threeDReconstruation(image_3D_left, image_3D_right, 'Inputs/precomputed_points/LEFTIMG1.txt',
+                                                            'Inputs/precomputed_points/RIGHTIMG1.txt', camParameters_right, camParameters_left)
+    Calibration.reconstruction(predicted_world_point)
+    
  
         
 def get_Parser():
@@ -239,32 +269,6 @@ def get_Parser():
 
 
 if __name__ == '__main__':
-    args = get_Parser().parse_args()
-    img_path = args.input
-    
-    # LEFT IMAGE
-    img_path_left = args.left
-    world_coord_file_left = args.txtfile
     Calibration = Calibration()
-    image_left = Calibration.PreProcess(img_path_left)
-    image_points_left = Calibration.getPointsFromImage(image_left, 'Inputs/precomputed_points/LEFTCAL.txt', 0)
-    M_left, image_coord_left, world_coord_left = Calibration.projectMatrix(image_points_left, world_coord_file_left)
-    camParameters_left = Calibration.getCameraParameters(M_left, image_coord_left, world_coord_left)
-    Calibration.verification(image_left,img_path_left,  camParameters_left, 0)
+    main(Calibration)
     
-    #RIGHT IMAGE
-    img_path_right = args.right
-    world_coord_file_right = args.txtfile
-    image_right = Calibration.PreProcess(img_path_right)
-    image_points_right = Calibration.getPointsFromImage(image_right, 'Inputs/precomputed_points/RIGHTCAL.txt', 1)
-    M_right, image_coord_right, world_coord_right = Calibration.projectMatrix(image_points_right, world_coord_file_right)
-    camParameters_right = Calibration.getCameraParameters(M_right, image_coord_right, world_coord_right)
-    Calibration.verification(image_right,img_path_right,  camParameters_right, 1)
-    
-    
-    # STEREO CALIBRATION
-    image_3D_left = Calibration.PreProcess(img_path_left)
-    image_3D_right = Calibration.PreProcess(img_path_right)
-    predicted_world_point,image_points_3D_right, image_points_3D_left = Calibration.threeDReconstruation(image_3D_left, image_3D_right, 'Inputs/precomputed_points/LEFTIMG1.txt',
-                                                             'Inputs/precomputed_points/RIGHTIMG1.txt', camParameters_right, camParameters_left)
-    Calibration.reconstruction(predicted_world_point)
