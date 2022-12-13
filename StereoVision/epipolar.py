@@ -136,8 +136,8 @@ class Epipolar(Calibration):
         for elem in new_points1:
             img2 = cv.line(img2, (int(elem[0]),int(elem[1])), (int( e_left[0]),int(e_left[1])), color,1)
             img2 = cv.circle(img2,(int(elem[0]),int(elem[1])),5,color,-1)
-        cv.imwrite("output/epipolar/epi_lines_right_reconstruct.jpg", img1)
-        cv.imwrite("output/epipolar/epi_lines_left_reconstruct.jpg", img2)
+        cv.imwrite("output/epipolar/epi_lines_right_rectification.jpg", img1)
+        cv.imwrite("output/epipolar/epi_lines_left_rectification.jpg", img2)
 
         im1_warped = cv.imread("output/epipolar/wraped_right.jpg")
         im2_warped = cv.imread("output/epipolar/wraped_left.jpg")

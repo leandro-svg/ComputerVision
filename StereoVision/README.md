@@ -9,6 +9,11 @@
   pip3 install requirements.txt
   ```
 
+
+## Preliminaries 
+
+Precomputed points from images are stored in the inputs/precomputed_points directory. If you want to select those points by yourself, remove those files and run the command in the following section.
+
  ## Running Calibration 
 To run the calibration code, you can enter the following command in your terminal : 
 ```
