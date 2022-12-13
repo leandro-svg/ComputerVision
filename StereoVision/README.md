@@ -6,7 +6,7 @@
  -  Ubuntu 20.04.5 LTS
 
 - ```
-  pip3 install requirements.txt
+  pip3 install -r requirements.txt
   ```
 
 

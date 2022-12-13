@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 from random import randint
-import os
+
 def random_with_N_digits(n):
     range_start = 10**(n-1)
     range_end = (10**n)-1

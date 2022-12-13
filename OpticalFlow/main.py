@@ -2,8 +2,6 @@ import numpy as np
 import argparse
 import cv2
 import cv2 as cv
-import math
-import time 
 import tqdm
 import os
 import glob
