@@ -90,11 +90,9 @@ class Calibration():
         camParameters["Extrinsic"] = extrinsic_add
         camParameters["RotationMatrix"] = R
         camParameters["TranslationMatrix"] = T
-        
         write_file(camParameters)
         return camParameters
     
-        
     def verification( image_left,path,  camParameters, intege):
         project  = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0]])
         K  = np.matmul(camParameters["Intrinsic"], project)
