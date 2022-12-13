@@ -149,12 +149,10 @@ class Epipolar(Calibration):
         ncols = 1
         fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=(6, 8))
 
-        # plot image 1
         ax1 = axes[0]
         ax1.set_title("Image 1 warped")
         ax1.imshow( im2_warped, cmap="gray")
 
-        # plot image 2
         ax2 = axes[1]
         ax2.set_title("Image 2 warped")
         ax2.imshow(im1_warped, cmap="gray")
@@ -164,10 +162,8 @@ class Epipolar(Calibration):
         for i in range(n):
             p1 = new_points1[i]
             p2 = new_points2[i]
-
             ax1.hlines(p2[1], 0, w, color="orange")
             ax1.scatter(*p1[:2], color="blue")
-
             ax2.hlines(p1[1], 0, w, color="orange")
             ax2.scatter(*p2[:2], color="blue")
         plt.savefig("output/epipolar/parallel_warped_reconstructed.jpg")
@@ -189,14 +185,12 @@ def get_Parser():
             type=str,
             help="Directory to left input images",
             )
-    
     parser.add_argument(
             "--right",
             default="Inputs/right.jpg",
             type=str,
             help="Directory to right input images",
             )
-
     parser.add_argument(
             "--txtfile",
             default="Inputs/calibration_points3.txt",
