@@ -20,10 +20,9 @@ If you haven't change the ZIP file, you can run directly the following command :
 python3 main.py --input Inputs/calibration_pointnumbering.jpg --left Inputs/left.jpg --right Inputs/right.jpg --txtfile Inputs/calibration_points3.txt --parametersFile Parameters.txt
 ```
 
-or :
-```
-python3 main.py 
-```
+or : ```
+      python3 main.py 
+      ```
 
 ## Running Epipolar : 
 To run the epipolar code, you can enter the following command in your terminal : 
@@ -39,4 +38,6 @@ python3 epipolar.py --input Inputs/calibration_pointnumbering.jpg --left Inputs/
 or : ```
      python3 epipolar.py 
      ```
+
+
 
