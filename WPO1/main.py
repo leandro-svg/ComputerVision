@@ -110,13 +110,17 @@ class Calibration():
             image_coord_test_new = image_coord_test[0:2]/homogenous
             cv2.circle(image, tuple([int(image_coord_test_new[0]), int(image_coord_test_new[1])]), 0, color=(0, 0, 255), thickness=5)
         axes = np.array([[0, 0, 0, 1], [49, 0, 0, 1], [0,49,0, 1], [0,0,49, 1]])
+        
+        image_coord_test = np.matmul(world2image, axes[0].T)
+        homogenous = image_coord_test[2]
+        origin_image = image_coord_test[0:2]/homogenous
+        
         for elem in axes:
-            print(elem)
             image_coord_test = np.matmul(world2image, elem.T)
             homogenous = image_coord_test[2]
             image_coord_test_new = image_coord_test[0:2]/homogenous
             cv2.circle(image, tuple([int(image_coord_test_new[0]), int(image_coord_test_new[1])]), 0, color=(0, 0, 255), thickness=5)
-            cv2.line(image, tuple([int(image_coord_test_new[0]), int(image_coord_test_new[1])]), tuple([int(axes[0]), int(axes[1])]), color, thickness) 
+            cv2.line(image, tuple([int(image_coord_test_new[0]), int(image_coord_test_new[1])]), tuple([int(origin_image[0]), int(origin_image[1])]), color=(0, 0, 255), thickness=5) 
 
         if (intege == 0):
             cv2.imwrite("./output/calibration/reconstructed_left_monocular.jpg", image)
