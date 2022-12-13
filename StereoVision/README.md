@@ -36,8 +36,7 @@ If you haven't change the ZIP file, you can run directly the following command :
 python3 epipolar.py --input Inputs/calibration_pointnumbering.jpg --left Inputs/left.jpg --right Inputs/right.jpg --txtfile Inputs/calibration_points3.txt --parametersFile Parameters.txt
 ```
 
-or :
-```
-python3 epipolar.py 
-```
+or : ```
+     python3 epipolar.py 
+     ```
 
