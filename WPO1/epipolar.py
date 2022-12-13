@@ -15,7 +15,7 @@ from utils.plot import plot_cube, plot_structure, plot_triangle
 from utils.general import click_event, random_with_N_digits, txt2array, txt2array_img
 from utils.general import ToHomogeneous
 from utils.math import SVD, SVD_coord
-from main import Calibration
+from main import Calibration, main
 
 class Epipolar(Calibration):
     def __init__(self, ):
@@ -77,9 +77,10 @@ class Epipolar(Calibration):
         points2 = np.reshape(points2, (np.shape(points2_)[0],3))
         
         
+        
         p1 = points1.T[:, 0]
         p2 = points2.T[:, 0]
-        print("This should be zero : ",np.round(p2.T @ FundMat @ p1))
+        print("This should be zero : ",np.round(p2.T @ F @ p1))
         
         h, w, rgb = im2.shape
         T = np.array([[1, 0, -w/2], [0, 1, -h/2], [0, 0, 1]])
@@ -167,7 +168,36 @@ class Epipolar(Calibration):
             ax2.hlines(p1[1], 0, w, color="orange")
             ax2.scatter(*p2[:2], color="blue")
         plt.savefig("output/epipolar/parallel_warped_reconstructed.jpg")
-        
+
+def main(epi, calib, args):
+    img_path = args.input
+    
+    # LEFT IMAGE
+    img_path_left = args.left
+    world_coord_file_left = args.txtfile
+    image_left = calib.PreProcess(img_path_left)
+    image_points_left = calib.getPointsFromImage(image_left, 'Inputs/precomputed_points/LEFTCAL.txt', 0)
+    M_left, image_coord_left, world_coord_left = calib.projectMatrix(image_points_left, world_coord_file_left)
+    camParameters_left = calib.getCameraParameters(M_left, image_coord_left, world_coord_left)
+    
+    #RIGHT IMAGE
+    img_path_right = args.right
+    world_coord_file_right = args.txtfile
+    image_right = calib.PreProcess(img_path_right)
+    image_points_right = calib.getPointsFromImage(image_right, 'Inputs/precomputed_points/RIGHTCAL.txt', 1)
+    M_right, image_coord_right, world_coord_right = calib.projectMatrix(image_points_right, world_coord_file_right)
+    camParameters_right = calib.getCameraParameters(M_right, image_coord_right, world_coord_right)
+    
+    
+    # STEREO CALIBRATION
+    image_3D_left = calib.PreProcess(img_path_left)
+    image_3D_right = calib.PreProcess(img_path_right)
+    predicted_world_point,image_points_3D_right, image_points_3D_left = calib.threeDReconstruation(image_3D_left, image_3D_right, 'Inputs/precomputed_points/LEFTIMG1.txt',
+                                                             'Inputs/precomputed_points/RIGHTIMG1.txt', camParameters_right, camParameters_left)
+    
+    #EPIPOLAR LINES
+    e_right, e_left, ptsRight, ptsLeft, FundMat, EssMat = epi.epiParameters(image_3D_left, image_3D_right, camParameters_right, camParameters_left, image_points_3D_right, image_points_3D_left)
+    epi.rectification(image_3D_right, image_3D_left, e_right, e_left, ptsRight, ptsLeft, FundMat, EssMat)    
 
         
 def get_Parser():
@@ -203,33 +233,7 @@ def get_Parser():
 
 if __name__ == '__main__':
     args = get_Parser().parse_args()
-    img_path = args.input
-    
-    # LEFT IMAGE
-    img_path_left = args.left
-    world_coord_file_left = args.txtfile
-    Calibration = Calibration()
-    image_left = Calibration.PreProcess(img_path_left)
-    image_points_left = Calibration.getPointsFromImage(image_left, 'Inputs/precomputed_points/LEFTCAL.txt', 0)
-    M_left, image_coord_left, world_coord_left = Calibration.projectMatrix(image_points_left, world_coord_file_left)
-    camParameters_left = Calibration.getCameraParameters(M_left, image_coord_left, world_coord_left)
-    
-    #RIGHT IMAGE
-    img_path_right = args.right
-    world_coord_file_right = args.txtfile
-    image_right = Calibration.PreProcess(img_path_right)
-    image_points_right = Calibration.getPointsFromImage(image_right, 'Inputs/precomputed_points/RIGHTCAL.txt', 1)
-    M_right, image_coord_right, world_coord_right = Calibration.projectMatrix(image_points_right, world_coord_file_right)
-    camParameters_right = Calibration.getCameraParameters(M_right, image_coord_right, world_coord_right)
-    
-    
-    # STEREO CALIBRATION
-    image_3D_left = Calibration.PreProcess(img_path_left)
-    image_3D_right = Calibration.PreProcess(img_path_right)
-    predicted_world_point,image_points_3D_right, image_points_3D_left = Calibration.threeDReconstruation(image_3D_left, image_3D_right, 'Inputs/precomputed_points/LEFTIMG1.txt',
-                                                             'Inputs/precomputed_points/RIGHTIMG1.txt', camParameters_right, camParameters_left)
-    
-    #EPIPOLAR LINES
+    calib = Calibration()
     epi = Epipolar()
-    e_right, e_left, ptsRight, ptsLeft, FundMat, EssMat = epi.epiParameters(image_3D_left, image_3D_right, camParameters_right, camParameters_left, image_points_3D_right, image_points_3D_left)
-    epi.rectification(image_3D_right, image_3D_left, e_right, e_left, ptsRight, ptsLeft, FundMat, EssMat)
+    main(epi, calib, args)
+    
