@@ -51,13 +51,17 @@ class OpticalFlow():
         fig = plt.figure(figsize= (10, 10))
         fig2 = plt.figure(figsize= (10, 10))
         fig3 = plt.figure(figsize= (10, 10))
+        fig4 = plt.figure(figsize= (10, 10))
+        fig5 = plt.figure(figsize= (10, 10))
+        fig6 = plt.figure(figsize= (10, 10))
+        fig7 = plt.figure(figsize= (10, 10))
 
         for index in range(1,len(images)):
-
-            img1 = cv2.imread(image_path[index-1], cv2.IMREAD_GRAYSCALE)
-            img2 = cv2.imread(image_path[index], cv2.IMREAD_GRAYSCALE)
-            img1 = img1/255
-            img2 = img2/255
+            print("Image :", index)
+            img_1 = cv2.imread(image_path[index-1], cv2.IMREAD_GRAYSCALE)
+            img_2 = cv2.imread(image_path[index], cv2.IMREAD_GRAYSCALE)
+            img1 = img_1#/255
+            img2 = img_2#/255
             img_1_x = cv2.Sobel(img1, cv2.CV_64F, 1, 0, ksize=3, borderType=cv.BORDER_DEFAULT)
             cv2.imwrite('ok.jpg', img_1_x)
             filter_x = np.transpose(np.array([[-1., -1.], [1., 1.]]))
@@ -84,23 +88,57 @@ class OpticalFlow():
                 kernel = np.ones((2,2),np.float32)/25
                 avg_u = cv.filter2D(u,-1,kernel)
                 avg_v = cv.filter2D(v,-1,kernel)
-                
                 iteration += 1
                 
             flow = flow_uv_to_colors(u,v)
+            img_flo = np.concatenate([img_1, flow[:,:,1]], axis=0)
+            
             ax = fig.add_subplot(3, 3, index)
             ax.imshow(flow)
             ax2 = fig2.add_subplot(3, 3, index)
             ax2.imshow(v)
             ax3 = fig3.add_subplot(3, 3, index)
             ax3.imshow(u)
-        # plt.show()
+
+            u = np.zeros(img1.shape)
+            v = np.zeros(img1.shape)
+            n = 1
+            for i in range(1, u.shape[0]):
+                for j in range(1, u.shape[1]):
+                    Ixpi = np.sum(np.power(Ix[i - n:i+n+1, j - n:j + n + 1],2))
+                    Iypi = np.sum(np.power(Iy[i - n:i+n+1, j - n:j + n + 1],2))
+                    IxIy = np.sum(np.multiply(Ix[i - n:i+n+1, j - n:j + n + 1], Iy[i - n:i+n+1, j - n:j + n + 1]))
+                    A = np.array([[Ixpi, IxIy],[IxIy,Iypi]])
+                    try:
+                        A_inv = np.linalg.inv(A)
+                    except:
+                        A_inv = A
+                    IxIt = -1*np.sum(np.multiply(Ix[i - n:i+n+1, j - n:j + n + 1], It[i - n:i+n+1, j - n:j + n + 1]))
+                    IyIt = -1*np.sum(np.multiply(Iy[i - n:i+n+1, j - n:j + n + 1], It[i - n:i+n+1, j - n:j + n + 1]))
+                    P = np.array([[IxIt],[IyIt]])
+                    uv = np.matmul(A_inv, P)
+                    u[i, j] = uv[0]
+                    v[i, j] = uv[1]
+            n, m = u.shape
+            [X,Y] = np.meshgrid(np.arange(m, dtype = 'float64'), np.arange(n, dtype = 'float64'))
+            new_flow = flow_uv_to_colors(u,v)
+            ax4 = fig4.add_subplot(3, 3, index)
+            ax4.imshow(u)
+            ax5 = fig5.add_subplot(3, 3, index)
+            ax5.imshow(v)
+            ax6 = fig6.add_subplot(3, 3, index)
+            ax6.imshow(new_flow)
+            img_flo = np.concatenate([img_flo, new_flow[:,:,1]], axis=0)
+            cv2.imshow('image', img_flo[:, :]/255.0)
+            cv2.waitKey()
         
-        
+
+        plt.show()
+            
         #KANADE EQUATION
         # try least squares fit
         # Compute A matrixes
-        
+        # Ixpi = 
         
         # plt.subplot(1, 2, 2)
         # plt.imshow(v, cmap = 'gray')
