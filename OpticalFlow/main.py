@@ -132,16 +132,8 @@ class OpticalFlow():
             cv2.imshow('image', img_flo[:, :]/255.0)
             cv2.waitKey()
         
-
         plt.show()
-            
-        #KANADE EQUATION
-        # try least squares fit
-        # Compute A matrixes
-        # Ixpi = 
-        
-        # plt.subplot(1, 2, 2)
-        # plt.imshow(v, cmap = 'gray')
+         
     
 def get_Parser():
     parser = argparse.ArgumentParser(
