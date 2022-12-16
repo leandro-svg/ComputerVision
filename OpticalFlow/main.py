@@ -14,26 +14,6 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from view_flow import flow_uv_to_colors
 from scipy import signal
 
-# plt.style.use('seaborn-poster')
-
-def random_with_N_digits(n):
-    range_start = 10**(n-1)
-    range_end = (10**n)-1
-    return randint(range_start, range_end)
-
-def click_event(event, x, y, flags, params):
-    image3D, path = params
-    if event == cv2.EVENT_LBUTTONDOWN:
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        cv2.putText(image3D, str(x) + ',' +
-                    str(y), (x,y), font,
-                    1, (255, 0, 0), 1)
-
-        with open(path, 'a') as f:
-            f.write(str(x) + ',' + str(y))
-            f.write('\n')
-        cv2.imshow('image', image3D)
-
 class OpticalFlow():
     def __init__(self, ):
         super().__init__()
@@ -63,7 +43,6 @@ class OpticalFlow():
             img1 = img_1#/255
             img2 = img_2#/255
             img_1_x = cv2.Sobel(img1, cv2.CV_64F, 1, 0, ksize=3, borderType=cv.BORDER_DEFAULT)
-            cv2.imwrite('ok.jpg', img_1_x)
             filter_x = np.transpose(np.array([[-1., -1.], [1., 1.]]))
             
             img_1_y = cv2.Sobel(img1, cv2.CV_64F, 0, 1, ksize=3, borderType=cv.BORDER_DEFAULT)
