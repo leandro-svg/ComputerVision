@@ -108,8 +108,6 @@ class OpticalFlow():
             ax6 = fig6.add_subplot(3, 3, index)
             ax6.imshow(new_flow)
             img_flo = np.concatenate([img_flo, new_flow[:,:,1]], axis=0)
-            cv2.imshow('image', img_flo[:, :]/255.0)
-            cv2.waitKey()
         
         plt.show()
          
