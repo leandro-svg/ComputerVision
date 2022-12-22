@@ -44,9 +44,8 @@ class OpticalFlow():
     
     def Horn_Shunck_OF(self, fig, images, image_path):
         print(('Horn-Shunck Optical Flow'))
-        for index in range(1,len(images)):
-            print("Image :", index)
-            
+        print("Computing...")
+        for index in tqdm.tqdm(range(1,len(images))):            
             Ix, Iy, It, img_1, img1, img2 = self.computeFeature(image_path, index)
             
             avg_u,avg_v,u,v, iteration  = 0,0,0,0,0
@@ -70,9 +69,8 @@ class OpticalFlow():
     
     def lucas_kanade_OF(self, fig, images, image_path):
         print('Lucas Kanade Optical Flow')
-        for index in range(1,len(images)):
-            print("Image :", index)
-            
+        print("Computing...")
+        for index in tqdm.tqdm(range(1,len(images))):            
             Ix, Iy, It, img_1, img1, img2 = self.computeFeature(image_path, index)
             
             u = np.zeros(img1.shape)
@@ -105,7 +103,7 @@ class OpticalFlow():
     
     
     def preProcess(self, image_path):
-        print(image_path)
+        print("Pre-processing images")
         if len(image_path) == 1:
             image_path = glob.glob(os.path.expanduser(image_path[0]))
             assert image_path, "The input path(s) was not found"
@@ -126,8 +124,8 @@ class OpticalFlow():
         Lucas_Kanade_OF = self.lucas_kanade_OF(fig6, images, image_path)
         fig6.suptitle("Lucas Kanade Optical Flow", fontsize=15)
         
-        fig.savefig('output/Horn_Shunck_OF.png')
-        fig6.savefig('output/lucas_kanade_OF.png')
+        fig.savefig('output/Horn_Shunck_OF_demoframes.png')
+        fig6.savefig('output/lucas_kanade_OF_demoframes.png')
         plt.show()
          
     
