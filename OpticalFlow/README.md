@@ -33,7 +33,7 @@ After having run the code, you can find the following output :
 ## To go further : 
 Additionnaly, to go a bit deeper in Optical Flow computing, one could use Deep Learning method to have more advanced and precise results than manual computation. 
 In order to do it, we are going to test one of the well-known architecture for optical flow : RAFT. (Recurrent All-Pairs Field Transforms for
-Optical Flow). 
+Optical Flow). The result can be found in the report as well.
 
 For installation, run the following commands (On ubuntu) : 
 ```
@@ -44,7 +44,7 @@ cd RAFT
 ```
 If the bash script doesn't work, download raft-small.pth at https://drive.google.com/drive/folders/1sWDsfuZ3Up38EUQt7-JDTT1HcGHuJgvT .
 
-Additionnaly, you could install the following dependencies if not already done :
+Additionnaly, you could install the following dependencies if not already done : (Personnally used Pip instead of Conda)
 ```
 conda create --name raft
 conda activate raft
