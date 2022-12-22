@@ -17,47 +17,38 @@ from scipy import signal
 class OpticalFlow():
     def __init__(self, ):
         super().__init__()
+        
+    def computeFeature(self, image_path, index):
+        img_1 = cv2.imread(image_path[index-1], cv2.IMREAD_GRAYSCALE)
+        img_2 = cv2.imread(image_path[index], cv2.IMREAD_GRAYSCALE)
+        img1 = img_1#/255
+        img2 = img_2#/255
+        img_1_x = cv2.Sobel(img1, cv2.CV_64F, 1, 0, ksize=3, borderType=cv.BORDER_DEFAULT)
+        filter_x = np.transpose(np.array([[-1., -1.], [1., 1.]]))
+        
+        img_1_y = cv2.Sobel(img1, cv2.CV_64F, 0, 1, ksize=3, borderType=cv.BORDER_DEFAULT)
+        img_2_x = cv2.Sobel(img2, cv2.CV_64F, 1, 0, ksize=3, borderType=cv.BORDER_DEFAULT)
+        img_2_y = cv2.Sobel(img2, cv2.CV_64F, 0, 1, ksize=3, borderType=cv.BORDER_DEFAULT)
+        
+        img1 = cv2.GaussianBlur(img1, (5, 5), 0)
+        img2 = cv2.GaussianBlur(img2, (5, 5), 0)
+        
+        kernel_t = np.array([[1., 1.], [1., 1.]])
+        Ix =  img_1_x + img_2_x
+        Iy = img_1_y + img_2_y
+        
+        mode = 'same'
+        It = signal.convolve2d(img2, kernel_t, boundary='symm', mode=mode) + signal.convolve2d(img1, - kernel_t, boundary='symm', mode=mode)
+        
+        return Ix, Iy, It, img_1, img1, img2
     
-    def preProcess(self, image_path):
-        print(image_path)
-        if len(image_path) == 1:
-            image_path = glob.glob(os.path.expanduser(image_path[0]))
-            assert image_path, "The input path(s) was not found"
-        images = []
-        for img_path in tqdm.tqdm(image_path):
-            img = cv2.imread(img_path)
-            images.append(img)
-            real_image = img.copy()
-        fig = plt.figure(figsize= (10, 10))
-        fig2 = plt.figure(figsize= (10, 10))
-        fig3 = plt.figure(figsize= (10, 10))
-        fig4 = plt.figure(figsize= (10, 10))
-        fig5 = plt.figure(figsize= (10, 10))
-        fig6 = plt.figure(figsize= (10, 10))
-        fig7 = plt.figure(figsize= (10, 10))
-
+    def Horn_Shunck_OF(self, fig, images, image_path):
+        print(('Horn-Shunck Optical Flow'))
         for index in range(1,len(images)):
             print("Image :", index)
-            img_1 = cv2.imread(image_path[index-1], cv2.IMREAD_GRAYSCALE)
-            img_2 = cv2.imread(image_path[index], cv2.IMREAD_GRAYSCALE)
-            img1 = img_1#/255
-            img2 = img_2#/255
-            img_1_x = cv2.Sobel(img1, cv2.CV_64F, 1, 0, ksize=3, borderType=cv.BORDER_DEFAULT)
-            filter_x = np.transpose(np.array([[-1., -1.], [1., 1.]]))
             
-            img_1_y = cv2.Sobel(img1, cv2.CV_64F, 0, 1, ksize=3, borderType=cv.BORDER_DEFAULT)
-            img_2_x = cv2.Sobel(img2, cv2.CV_64F, 1, 0, ksize=3, borderType=cv.BORDER_DEFAULT)
-            img_2_y = cv2.Sobel(img2, cv2.CV_64F, 0, 1, ksize=3, borderType=cv.BORDER_DEFAULT)
+            Ix, Iy, It, img_1, img1, img2 = self.computeFeature(image_path, index)
             
-            img1 = cv2.GaussianBlur(img1, (5, 5), 0)
-            img2 = cv2.GaussianBlur(img2, (5, 5), 0)
-            
-            kernel_t = np.array([[1., 1.], [1., 1.]])
-            Ix =  img_1_x + img_2_x
-            Iy = img_1_y + img_2_y
-            
-            mode = 'same'
-            It = signal.convolve2d(img2, kernel_t, boundary='symm', mode=mode) + signal.convolve2d(img1, - kernel_t, boundary='symm', mode=mode)
             avg_u,avg_v,u,v, iteration  = 0,0,0,0,0
             avg_u = u
             avg_v = v
@@ -70,15 +61,20 @@ class OpticalFlow():
                 iteration += 1
                 
             flow = flow_uv_to_colors(u,v)
-            img_flo = np.concatenate([img_1, flow[:,:,1]], axis=0)
-            
             ax = fig.add_subplot(3, 3, index)
+            
             ax.imshow(flow)
-            ax2 = fig2.add_subplot(3, 3, index)
-            ax2.imshow(v)
-            ax3 = fig3.add_subplot(3, 3, index)
-            ax3.imshow(u)
-
+            ax.set_title('Horn-Shunck optical Flow')
+            
+        return flow
+    
+    def lucas_kanade_OF(self, fig, images, image_path):
+        print('Lucas Kanade Optical Flow')
+        for index in range(1,len(images)):
+            print("Image :", index)
+            
+            Ix, Iy, It, img_1, img1, img2 = self.computeFeature(image_path, index)
+            
             u = np.zeros(img1.shape)
             v = np.zeros(img1.shape)
             n = 1
@@ -99,16 +95,39 @@ class OpticalFlow():
                     u[i, j] = uv[0]
                     v[i, j] = uv[1]
             n, m = u.shape
-            [X,Y] = np.meshgrid(np.arange(m, dtype = 'float64'), np.arange(n, dtype = 'float64'))
-            new_flow = flow_uv_to_colors(u,v)
-            ax4 = fig4.add_subplot(3, 3, index)
-            ax4.imshow(u)
-            ax5 = fig5.add_subplot(3, 3, index)
-            ax5.imshow(v)
-            ax6 = fig6.add_subplot(3, 3, index)
-            ax6.imshow(new_flow)
-            img_flo = np.concatenate([img_flo, new_flow[:,:,1]], axis=0)
+            flow = flow_uv_to_colors(u,v)
+            ax6 = fig.add_subplot(3, 3, index)
+            
+            ax6.imshow(flow)
+            ax6.set_title('Lucas Kanade Optical Flow')
+            
+        return flow
+    
+    
+    def preProcess(self, image_path):
+        print(image_path)
+        if len(image_path) == 1:
+            image_path = glob.glob(os.path.expanduser(image_path[0]))
+            assert image_path, "The input path(s) was not found"
+        images = []
+        for img_path in tqdm.tqdm(image_path):
+            img = cv2.imread(img_path)
+            images.append(img)
+            real_image = img.copy()
+        return images
+
+    def main(self, images, image_path ):
+        fig = plt.figure(figsize= (10, 10))
+        fig6 = plt.figure(figsize= (10, 10))
+
+        Horn_Shunck_OF = self.Horn_Shunck_OF(fig, images, image_path)
+        fig.suptitle("Horn-Shunck Optical Flow", fontsize=15)
         
+        Lucas_Kanade_OF = self.lucas_kanade_OF(fig6, images, image_path)
+        fig6.suptitle("Lucas Kanade Optical Flow", fontsize=15)
+        
+        fig.savefig('output/Horn_Shunck_OF.png')
+        fig6.savefig('output/lucas_kanade_OF.png')
         plt.show()
          
     
@@ -128,6 +147,6 @@ def get_Parser():
 if __name__ == '__main__':
     args = get_Parser().parse_args()
     img_path = args.input
-    print(img_path)
     OF = OpticalFlow()
-    OF.preProcess(img_path)
+    images = OF.preProcess(img_path)
+    OF.main(images, img_path)
