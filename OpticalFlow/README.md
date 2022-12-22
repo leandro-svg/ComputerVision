@@ -42,7 +42,7 @@ cd RAFT
 ./download_models.sh 
 
 ```
-If the bash script doesn't work, download raft-small.pth at https://drive.google.com/drive/folders/1sWDsfuZ3Up38EUQt7-JDTT1HcGHuJgvT .
+If the bash script doesn't work, download raft-small/things.pth at https://drive.google.com/drive/folders/1sWDsfuZ3Up38EUQt7-JDTT1HcGHuJgvT .
 
 Additionnaly, you could install the following dependencies if not already done : (Personnally used Pip instead of Conda)
 ```
