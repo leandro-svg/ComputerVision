@@ -1,6 +1,6 @@
 # Computer Vision : Calibration and Stereo Vision
 
-**This repository (https://github.com/leandro-svg/ComputerVision/tree/master/OpticalFlow) implements a manual implementation of Optical Flow using  : Lucas Kanada and Horn-Chunkz methods.
+**This repository (https://github.com/leandro-svg/ComputerVision/tree/master/OpticalFlow) implements a manual implementation of Optical Flow using  : Lucas Kanada and Horn-Chunkz methods.**
 
  ## Installation and dependencies
  -  Ubuntu 20.04.5 LTS
